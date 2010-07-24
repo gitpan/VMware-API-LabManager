@@ -1,0 +1,12 @@
+abstract:     VMware's Lab Manager public and private API
+installdirs:  site
+license:      perl
+name:         VMware-API-LabManager
+version:      1.00
+version_from: lib/VMware/API/LabManager.pm
+
+requires:
+  SOAP::Lite: 0
+
+distribution_type: module
+generated_by: ExtUtils::MakeMaker version 6.17
