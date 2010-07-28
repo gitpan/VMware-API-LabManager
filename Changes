@@ -1,9 +1,48 @@
 Revision history for VMware::API::LabManager
 
-1.00  2010/07/24
+1.2  2010/07/27
 
+  Added:
+    priv_ConfigurationArchiveEx()
+    priv_ConfigurationCloneToWorkspace()
 
+  Improved:
+    priv_LibraryCloneToWorkspace()
 
+  Corrected prerequiste declarations in Makefile.PL
 
-  Forked from VMWare::LabmanSoap to add features and resolve bugs.
+  Improved the POD documentation
 
+1.1 (1.0) 2010/07/24
+
+  Moved all printing on STDOUT to a debug method.
+
+  Split private and public SOAP calls to use their respective URLs.
+
+  Provided option to handle faults without a forced die()
+
+  Standardized fault handling on all methods.
+
+  Added the following private API calls:  
+
+    priv_ConfigurationAddMachineEx
+    priv_ConfigurationCaptureEx
+    priv_ConfigurationCopy
+    priv_ConfigurationCreateEx
+    priv_ConfigurationExport
+    priv_ConfigurationImport
+    priv_GetNetworkInfo
+    priv_GetObjectConditions
+    priv_GetWorkspaceByName
+    priv_LibraryCloneToWorkspace
+    priv_ListTemplates
+    priv_NetworkInterfaceCreate
+    priv_NetworkInterfaceDelete
+    priv_StorageServerVMFSFindByName
+    priv_TemplateImportFromSMB
+    priv_TemplatePerformAction
+    priv_WorkspaceCreate
+
+  ConfigurationDeployEx2 moved to priv_ConfigurationDeployEx2.
+
+  Forked from VMWare::LabmanSoap (alpha) to add features and resolve bugs.

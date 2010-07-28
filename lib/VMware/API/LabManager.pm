@@ -1,8 +1,6 @@
 package VMware::API::LabManager;
 
 use SOAP::Lite; # +trace => 'debug';
-use Data::Dumper;
-
 use strict;
 
 =head1 NAME
@@ -11,41 +9,38 @@ VMware::API::LabManager - The VMware LabManager API
 
 =head1 VERSION
 
-$Revision: 1.1.1.1 $
+$Revision: 1.2 $
 
 =cut
 
-our $VERSION =  ( split ' ', '$Revision: 1.1.1.1 $' )[1];
+our $VERSION =  ( split ' ', '$Revision: 1.2 $' )[1];
 
 =head1 SYNOPSIS
 
-This module has been tested using Labmanger 4.0 (4.0.1.1233). 
+This module has been developed agains VMware vCenter Lab Manager 4.0 (4.0.1.1233)
 
 Code to checkout, deploy, undeploy and delete a configuration:
 
  	use VMware::API::LabManager;
- 
-	my $labman = VMware::API::LabManager->new('LM_Username','LM_Password','LM_Hostname','Organization_Name','WorkSpace_Name');
 
- 	#Get the id of the config you are going to check out 
- 	@lib_config_id = $labman->GetSingleConfigurationByName($libraryConfigName,"id");
+    my $labman = new VMware::LabManager ( $username, $password, $server, $orgname, $workspace );
 
- 	#Checkout the config
- 	$checked_out_config_id  = $labman->ConfigurationCheckout($lib_config_id[0],"NEW_WORKSPACE_NAME");
+ 	# Get the id of the config you are going to check out 
+ 	my $config = $labman->GetSingleConfigurationByName("myConfigName");
 
- 	#Deploy the config
- 	$labman->ConfigurationDeploy($checked_out_config_id,4); # The 4 is for the fencemode
+ 	# Checkout the config
+ 	my $checked_out_config_id  = $labman->ConfigurationCheckout($lib_config_id[0],"NEW_WORKSPACE_NAME");
 
-	#Deploy the config to DVS
-	$labman->priv_ConfigurationDeployEx2($checked_out_config_id,2); # 2 is the id of the network
+ 	# Deploy the config
+ 	my $ret = $labman->ConfigurationDeploy($checked_out_config_id,4); # The 4 is for the fencemode
 
- 	#Undeploy the config
- 	$labman->ConfigurationUndeploy($chkd_out_id);
+ 	# Undeploy the config
+ 	my $ret = $labman->ConfigurationUndeploy($chkd_out_id);
 
- 	#Delete the config
- 	$labman->ConfigurationDelete($chkd_out_id);
+ 	# Delete the config
+ 	my $ret = $labman->ConfigurationDelete($chkd_out_id); # You really should be sure before doing this :)
 
-	#Check for last SOAP error
+	# Check for last SOAP error
     print $labman->getLastSOAPError();
 
 =head1 DESCRIPTION
@@ -74,7 +69,7 @@ This method creates the Labmanager object.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * username
 
@@ -192,7 +187,7 @@ This method captures a Workspace configuration and saves into the library.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -231,16 +226,20 @@ sub ConfigurationCapture {
 This method checks out a configuration from the configuration library and moves it to the Workspace under a different name. It returns the ID of the checked out configuration in the WorkSpace.
 
 WARNING: If you get the following SOAP Error: 
-=over 8
+
+=over 4
+
 Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main' ---> Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main'
+
 =back
+
 This is because there are multiple workspaces named "Main", in different organizations. Apparently this API call doesn't limit the check for workspace name against the organization you authenticated with.
 
 A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -276,7 +275,7 @@ This method clones a Workspace configuration, saves it in a storage server, and 
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -310,7 +309,7 @@ This method deletes a configuration from the Workspace. You cannot delete a depl
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -343,7 +342,7 @@ This method allows you to deploy an undeployed configuration which resides in th
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -376,7 +375,7 @@ sub ConfigurationDeploy {
 
 This method performs one of the following configuration actions as indicated by the action identifier:
 
-=over 4
+=over
 
 =item	1 Power On. Turns on a configuration.
 
@@ -394,7 +393,7 @@ This method performs one of the following configuration actions as indicated by 
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -428,7 +427,7 @@ Use this call to set the state of a configuration to public” or private.” If
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -463,7 +462,7 @@ Undeploys a configuration in the Workspace. Nothing is returned.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -489,45 +488,21 @@ sub ConfigurationUndeploy {
 
 =head2 GetConfiguration
 
-This method prints a list of attributes of a Configuration matching the configuration ID passed. It will return an array if you specify which attributes you would like to access
+This method retruns a reference to a Configuration matching the configuration ID passed.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Config ID
 
 =back
 
-=head3 Attributes
+=head3 Returns
 
-=over 4
-
-=item * 	mustBeFenced
-
-=item *	autoDeleteDateTime
-
-=item * 	bucketName
-
-=item * 	name
-
-=item *	autoDeleteInMilliSeconds
-
-=item * 	description
-
-=item * 	isDeployed
-
-=item * 	fenceMode
-
-=item * 	id
-
-=item * 	type
-
-=item * 	isPublic
-
-=item * 	dateCreated
-
-=back
+A hashref to a configuration. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
+name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
+dateCreated
 
 =cut
 
@@ -555,39 +530,16 @@ This call takes the numeric identifier of a machine and returns its correspondin
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Machine ID - Use GetMachineByName to retrieve this
 
 =back
 
-=head3 Attributes
+=head3 Returns
 
-=over 4
-
-=item * configID
-
-=item * macAddress
-
-=item * status
-
-=item * OwnerFullName
-
-=item * name
-
-=item * description
-
-=item * isDeployed
-
-=item * internalIP
-
-=item * memory
-
-=item * DatastoreNameResidesOn
-
-=item * id
-
-=back
+A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
+name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
 
 =cut
 
@@ -609,50 +561,24 @@ sub GetMachine {
   }
 }
 
-
 =head2 GetMachineByName
 
 This call takes a configuration identifier and a machine name and returns the matching Machine object.
 
 =head3 Arguments
 
-=over 4 
-
+=over
+ 
 =item * Configuration ID - Config where Guest VM lives
 
 =item * Name of guest
 
-=item * Attribute(s) (optional) - if left blank, prints out and returns an array of all attributes.
-
 =back
 
-=head3 Attributes
+=head3 Returns
 
-=over 4
-
-=item * configID
-
-=item * macAddress
-
-=item * status
-
-=item * OwnerFullName
-
-=item * name
-
-=item * description
-
-=item * isDeployed
-
-=item * internalIP
-
-=item * memory
-
-=item * DatastoreNameResidesOn
-
-=item * id
-
-=back
+A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
+name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
 
 =cut
 
@@ -679,59 +605,31 @@ sub GetMachineByName
 
 =head2 GetSingleConfigurationByName
 
-This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object. Returns an array of attributes or one or more specified attributes.
+This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration name 
 
-=item * Attribute(s) (optional) - if left blank, prints out and returns an array of all attributes.
-
 =back
 
-=head3 Attributes
+=head3 Returns
 
-=over 4
-
-=item * mustBeFenced
-
-=item * autoDeleteDateTime
-
-=item * bucketName  (aka workspace)
-
-=item * name
-
-=item * autoDeleteInMilliSeconds
-
-=item * description
-
-=item * isDeployed
-
-=item * fenceMode
-
-=item * id
-
-=item * type
-
-=item * isPublic
-
-=item * dateCreated
-
-=back
+A hashref to a configuration. Example elements: mustBeFenced, autoDeleteDateTime,
+bucketName (aka workspace), name, autoDeleteInMilliSeconds, description, isDeployed,
+fenceMode, id, type, isPublic, dateCreated
 
 =cut
 
 sub GetSingleConfigurationByName {
   my $self    = shift @_;
   my $config  = shift @_;
-  my @attribs = @_;
-  my @myattribs;
 		
-	$self->{GetSingleConfigurationByName} = 
-		$self->{soap}->GetSingleConfigurationByName( $self->{auth_header}, 
-		SOAP::Data->name('name' => $config)->type('s:string'));
+  $self->{GetSingleConfigurationByName} = 
+    $self->{soap}->GetSingleConfigurationByName( $self->{auth_header}, 
+    SOAP::Data->name('name' => $config)->type('s:string'));
 
   if ( $self->{GetSingleConfigurationByName}->fault ) {
     $self->_fault( $self->{GetMachineByName}->fault );
@@ -750,7 +648,7 @@ It depends on configuration type requested.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * configurationType (Configuration Type must be either 1 for Workspace or 2 for Library) 
 
@@ -791,14 +689,13 @@ This method returns an array of type Machine. The method returns one Machine obj
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID
 
 =back
 
 =cut
-
 
 sub ListMachines {
   my $self   = shift @_;
@@ -852,7 +749,7 @@ This method allows you to create a LiveLink URL to a library configuration. Resp
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * config Name
 
@@ -880,7 +777,7 @@ sub LiveLink
 
 This method performs one of the following machine actions as indicated by the action identifier:
 
-=over 4
+=over
 
 =item 1  Power on. Turns on a machine.
 
@@ -902,7 +799,7 @@ This method performs one of the following machine actions as indicated by the ac
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Machine ID
 
@@ -942,7 +839,7 @@ releases of the Labmanager product.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * id - ID of the configuration.
 
@@ -1009,13 +906,13 @@ sub priv_ConfigurationAddMachineEx {
   }
 }
 
-=head2 priv_ConfigurationCaptureEx
+=head2 priv_ConfigurationArchiveEx
 
 This method captures a Workspace configuration and saves into the library.  
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
@@ -1034,6 +931,66 @@ This method captures a Workspace configuration and saves into the library.
 =head3 Returns
 
 ID on success. Fault object on fault.
+
+=cut
+
+sub priv_ConfigurationArchiveEx {
+  my $self               = shift @_;
+  my $configurationId    = shift @_;
+  my $archiveName        = shift @_;
+  my $archiveDescription = shift @_;
+  my $isFullClone        = shift @_;
+  my $storageName        = shift @_;
+  my $storageLeaseInMilliseconds = shift @_ || 0;
+
+  $isFullClone eq 'false' unless $isFullClone =~ /^true$/i;
+
+  $self->{ConfigurationArchiveEx} = 
+    $self->{soap_priv}->ConfigurationArchiveEx( 
+      $self->{auth_header}, 
+      SOAP::Data->name('configurationID'            => $configurationId            )->type('s:int'),
+      SOAP::Data->name('archiveName'                => $archiveName                )->type('s:string'),
+      SOAP::Data->name('archiveDescription'         => $archiveDescription         )->type('s:string'),
+      SOAP::Data->name('isFullClone'                => $isFullClone                )->type('s:boolean'),
+      SOAP::Data->name('storageName'                => $storageName                )->type('s:string'),
+      SOAP::Data->name('storageLeaseInMilliseconds' => $storageLeaseInMilliseconds )->type('s:long')
+    );
+
+  if ( $self->{ConfigurationArchiveEx}->fault ) {
+    $self->_fault( $self->{ConfigurationArchiveEx}->fault );
+    return $self->{ConfigurationArchiveEx}->fault;
+  } else {
+    return $self->{ConfigurationArchiveEx}->result;
+  }
+}
+
+=head2 priv_ConfigurationCaptureEx
+
+This method captures a Workspace configuration and saves into the library.  
+
+=head3 Arguments
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New library name - The name that you want the captured config to be.
+
+=item * libraryDescription
+
+=item * isGoldMaster
+
+=item * storageName
+
+=item * storageLeaseInMilliseconds
+
+=back
+
+=head3 Returns
+
+ID on success. Fault object on fault.
+
+NB: API docs are wrong on this one. It accepts ConfigurationId and not ConfigurationID
 
 =cut
 
@@ -1068,6 +1025,24 @@ sub priv_ConfigurationCaptureEx {
 }
 
 =head2 priv_ConfigurationCopy
+
+This method copys a configuration to a new datastore. (Full clone)
+
+=head3 Arguments
+
+=over
+
+=item * sg_id
+
+=item * name
+
+=item * description
+
+=item * Machines array
+
+=item * storage location
+
+=back
 
 =cut
 
@@ -1112,13 +1087,96 @@ sub priv_ConfigurationCopy {
   }
 }
 
+=head2 priv_ConfigurationCloneToWorkspace
+
+This method copys a configuration to a new datastore. (Full clone)
+
+=head3 Arguments
+
+=over
+
+=item * destWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * description
+
+=item * Machines array
+
+=item * storage location
+
+=item * existingConfigId
+
+=item * isFullClone
+
+=item * storageLeaseInMilliseconds
+
+=back
+
+=cut
+
+sub priv_ConfigurationCloneToWorkspace {
+  my $self               = shift @_;
+  my $destWorkspaceId    = shift @_;
+  my $isNewConfiguration = shift @_;
+  my $newConfigName      = shift @_;
+  my $description        = shift @_;
+  
+  my $machines = shift @_;
+  my $storage  = shift @_;
+
+  my $existingConfigId           = shift @_;
+  my $isFullClone                = shift @_;
+  my $storageLeaseInMilliseconds = shift @_;
+  
+  $isNewConfiguration eq 'false' unless $isNewConfiguration =~ /^true$/i;
+  $isFullClone eq 'false' unless $isFullClone =~ /^true$/i;
+  
+  my @machine_data;
+
+  for my $machine (@$machines) {
+    my @elements;
+    for my $element ( keys %$machine ) {
+      push @elements, SOAP::Data->name( $element, $machine->{$element} );
+    }
+    push @machine_data, SOAP::Data->name('machine' => \SOAP::Data->value(@elements));
+  }
+  
+  $self->{ConfigurationCloneToWorkspace} = 
+    $self->{soap_priv}->ConfigurationCloneToWorkspace( 
+      $self->{auth_header}, 
+      SOAP::Data->name('destWorkspaceId'    => $destWorkspaceId    )->type('s:int'),
+      SOAP::Data->name('isNewConfiguration' => $isNewConfiguration )->type('s:bool'),
+      SOAP::Data->name('newConfigName'      => $newConfigName      )->type('s:string'),
+      SOAP::Data->name('description'        => $description        )->type('s:string'),
+	  SOAP::Data->name('configurationCopyData' => \SOAP::Data->value(
+        SOAP::Data->name('VMCopyData' => \SOAP::Data->value(
+          @machine_data,
+          SOAP::Data->name('storageServerName' => $storage )->type('s:string')
+        ))
+	  )),
+      SOAP::Data->name('isFullClone' => $newConfigName )->type('s:bool'),
+      SOAP::Data->name('storageLeaseInMilliseconds' => $description )->type('s:long'),	  
+    );
+
+  if ( $self->{ConfigurationCloneToWorkspace}->fault ) {
+    $self->_fault( $self->{ConfigurationCloneToWorkspace}->fault );
+    return $self->{ConfigurationCloneToWorkspace}->fault;
+  } else {
+    return $self->{ConfigurationCloneToWorkspace}->result;
+  }
+}
+
+
 =head2 priv_ConfigurationCreateEx
 
 Creates and empty configuration.
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Name - The name of the configuration 
 
@@ -1160,7 +1218,7 @@ This method allows you to deploy an undeployed configuration which resides in th
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it. 
 
@@ -1215,6 +1273,20 @@ sub priv_ConfigurationDeployEx2 {
 
 =head2 priv_ConfigurationExport
 
+=head3 Arguments
+
+=over
+
+=item * configId
+
+=item * uncPath
+
+=item * username
+
+=item * password
+
+=back
+
 =cut
 
 sub priv_ConfigurationExport {
@@ -1243,6 +1315,24 @@ sub priv_ConfigurationExport {
 
 
 =head2 priv_ConfigurationImport
+
+=head3 Arguments
+
+=over
+
+=item * UNCPath
+
+=item * dirUsername
+
+=item * dirPassword
+
+=item * name
+
+=item * description
+
+=item * storageName
+
+=back
 
 =cut
 
@@ -1278,7 +1368,7 @@ sub priv_ConfigurationImport {
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * objectType - Integer representing the object type:
 
@@ -1317,7 +1407,7 @@ sub priv_GetObjectConditions {
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * vmID - VM id number
 
@@ -1345,7 +1435,13 @@ sub priv_GetNetworkInfo {
 
 =head2 priv_GetWorkspaceByName
 
-name string
+=head3 Arguments
+
+=over
+
+=item * string
+
+=back
 
 =cut
 
@@ -1365,17 +1461,27 @@ sub priv_GetWorkspaceByName {
 
 =head2 priv_LibraryCloneToWorkspace
 
-public int LibraryCloneToWorkspace( 
-int libraryId, 
-int destWorkspaceId, 
-bool isNewConfiguration, 
-string newConfigName, 
-string description, 
-VMCopyData[] copyData, 
-int existingConfigId, 
-bool isFullClone, 
-long storageLeaseInMilliseconds 
-);
+=over
+
+=item * libraryId
+
+=item * destWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * description
+
+=item * copyData
+
+=item * existingConfigId
+
+=item * isFullClone
+
+=item * storageLeaseInMilliseconds 
+
+=back
 
 =cut
 
@@ -1386,35 +1492,52 @@ sub priv_LibraryCloneToWorkspace {
   my $isnew           = shift @_;
   my $newname         = shift @_;
   my $description     = shift @_;
-  my $vmcopydata      = shift @_;
+
+  my $machines        = shift @_;
+  my $storage         = shift @_;
+  
   my $existingconfid  = shift @_;
   my $isfullclone     = shift @_;
   my $storagelease    = shift @_;
+
+  $isnew eq 'false' unless $isnew =~ /^true$/i;
+  $isfullclone eq 'false' unless $isfullclone =~ /^true$/i;
+  
+  my @machine_data;
+
+  for my $machine (@$machines) {
+    my @elements;
+    for my $element ( keys %$machine ) {
+      push @elements, SOAP::Data->name( $element, $machine->{$element} );
+    }
+    push @machine_data, SOAP::Data->name('machine' => \SOAP::Data->value(@elements));
+  }
   
   $self->{LibraryCloneToWorkspace} = 
-    $self->{soap_priv}->LibraryCloneToWorkspace( $self->{auth_header}, 
-	SOAP::Data->name('libraryId'                  => $libraryid       )->type('s:int'),
-	SOAP::Data->name('destWorkspaceId'            => $destworkspaceid )->type('s:int'),
-	SOAP::Data->name('isNewConfiguration'         => $isnew           )->type('s:boolean'),
-	SOAP::Data->name('newConfigName'              => $newname         )->type('s:string'),
-	SOAP::Data->name('description'                => $description     )->type('s:description'),
-	SOAP::Data->name('existingConfigId'           => $existingconfid  )->type('s:int'),
-	SOAP::Data->name('isFullClone'                => $isfullclone     )->type('s:boolean'),
-	SOAP::Data->name('storageLeaseInMilliseconds' => $storagelease    )->type('s:long')
-  );
+    $self->{soap_priv}->LibraryCloneToWorkspace( 
+      $self->{auth_header}, 
+      SOAP::Data->name('libraryId'                  => $libraryid       )->type('s:int'),
+      SOAP::Data->name('destWorkspaceId'            => $destworkspaceid )->type('s:int'),
+      SOAP::Data->name('isNewConfiguration'         => $isnew           )->type('s:boolean'),
+      SOAP::Data->name('newConfigName'              => $newname         )->type('s:string'),
+      SOAP::Data->name('description'                => $description     )->type('s:string'),
+	  SOAP::Data->name('copyData' => \SOAP::Data->value(
+        SOAP::Data->name('VMCopyData' => \SOAP::Data->value(
+          @machine_data,
+          SOAP::Data->name('storageServerName' => $storage )->type('s:string')
+        ))
+	  )),
+      ( $existingconfid ? SOAP::Data->name('existingConfigId'           => $existingconfid  )->type('s:int') : '' ),
+      SOAP::Data->name('isFullClone'                => $isfullclone     )->type('s:boolean'),
+	  SOAP::Data->name('storageLeaseInMilliseconds' => $storagelease    )->type('s:long')
+    );
 
-#int libraryId, 
-#int destWorkspaceId, 
-#bool isNewConfiguration, 
-#string newConfigName, 
-#string description, 
-#VMCopyData[] copyData, 
-#int existingConfigId, 
-#bool isFullClone, 
-#long storageLeaseInMilliseconds 
-
-  $self->_fault( $self->{LibraryCloneToWorkspace}->fault ) if $self->{LibraryCloneToWorkspace}->fault;
-  return $self->{LibraryCloneToWorkspace}->result;
+  if ( $self->{LibraryCloneToWorkspace}->fault ) {
+    $self->_fault( $self->{LibraryCloneToWorkspace}->fault );
+    return $self->{LibraryCloneToWorkspace}->fault;
+  } else {
+    return $self->{LibraryCloneToWorkspace}->result;
+  }
 }
 
 =head2 priv_ListTemplates
@@ -1454,7 +1577,7 @@ sub priv_ListTemplates {
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * vmID - VM id number
 
@@ -1494,7 +1617,7 @@ sub priv_NetworkInterfaceCreate {
 
 =head2 priv_NetworkInterfaceDelete
 
-=over 4
+=over
 
 =item * vmID - VM id number
 
@@ -1526,7 +1649,7 @@ sub priv_NetworkInterfaceDelete {
 
 =head2 priv_StorageServerVMFSFindByName
 
-=over 4
+=over
 
 =item * Storename
 
@@ -1555,6 +1678,28 @@ sub priv_StorageServerVMFSFindByName {
 }
 
 =head2 priv_TemplateImportFromSMB
+
+=head3 Arguments
+
+=over
+
+=item * UNCpath
+
+=item * username
+
+=item * password
+
+=item * delete
+
+=item * description
+
+=item * destStore
+
+=item * destName
+
+=item * destDesc
+
+=back
 
 =cut
 
@@ -1612,6 +1757,16 @@ sub priv_TemplateImportFromSMB {
 
 =head2 priv_TemplatePerformAction
 
+=head3 Arguments
+
+=over
+
+=item * Template ID
+
+=item * Action
+
+=back
+
 =cut
 
 sub priv_TemplatePerformAction {
@@ -1636,7 +1791,7 @@ sub priv_TemplatePerformAction {
 
 =head3 Arguments
 
-=over 4
+=over
 
 =item * name
 

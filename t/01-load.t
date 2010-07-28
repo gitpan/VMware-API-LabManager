@@ -15,5 +15,8 @@ ok(1); # If we made it this far, we're ok.
 # Insert your test code below, the Test module is use()ed here so read
 # its man page ( perldoc Test ) for help writing this test script.
 
-my $labman = new VMware::API::LabManager;
-ok(defined $labmanager);
+my $labman = new VMware::API::LabManager (
+  qw/username password server orgname workspace 0 0/
+);
+
+ok(defined $labman);
