@@ -9,11 +9,11 @@ VMware::API::LabManager - The VMware LabManager API
 
 =head1 VERSION
 
-$Revision: 1.2 $
+$Revision: 1.3 $
 
 =cut
 
-our $VERSION =  ( split ' ', '$Revision: 1.2 $' )[1];
+our $VERSION =  ( split ' ', '$Revision: 1.3 $' )[1];
 
 =head1 SYNOPSIS
 
@@ -104,12 +104,12 @@ sub new {
 	$self->{soap} = SOAP::Lite
 		-> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
 		-> default_ns('http://vmware.com/labmanager')
-		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManager.asmx');
+		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManager.asmx', timeout => 3600 );
 
 	$self->{soap_priv} = SOAP::Lite
 		-> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
 		-> default_ns('http://vmware.com/labmanager')
-		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManagerInternal.asmx');
+		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManagerInternal.asmx', timeout => 3600 );
 
 	$self->{soap}->readable(1);
 	$self->{soap_priv}->readable(1);
@@ -120,7 +120,7 @@ sub new {
 		value => { username => $username, password => $password, organizationname => $orgname, workspacename => $workspace  },
 		);
 
-  if ( $self->{soap}->fault ){ $self->{LASTERROR} = $self->{soap}->fault }
+  #if ( $self->{soap}->fault ){ $self->{LASTERROR} = $self->{soap}->fault }
 
   bless($self, $class);
   $self->_debug("Loaded VMware::API::LabManager v" . our $VERSION . "\n") if $self->{debug};
@@ -943,7 +943,7 @@ sub priv_ConfigurationArchiveEx {
   my $storageName        = shift @_;
   my $storageLeaseInMilliseconds = shift @_ || 0;
 
-  $isFullClone eq 'false' unless $isFullClone =~ /^true$/i;
+  $isFullClone = 'false' unless $isFullClone =~ /^true$/i;
 
   $self->{ConfigurationArchiveEx} = 
     $self->{soap_priv}->ConfigurationArchiveEx( 
@@ -1003,7 +1003,7 @@ sub priv_ConfigurationCaptureEx {
   my $storageName        = shift @_;
   my $storageLeaseInMilliseconds = shift @_ || 0;
 
-  $isGoldMaster eq 'false' unless $isGoldMaster =~ /^true$/i;
+  $isGoldMaster = 'false' unless $isGoldMaster =~ /^true$/i;
 
   $self->{ConfigurationCaptureEx} = 
     $self->{soap_priv}->ConfigurationCaptureEx( 
@@ -1131,8 +1131,8 @@ sub priv_ConfigurationCloneToWorkspace {
   my $isFullClone                = shift @_;
   my $storageLeaseInMilliseconds = shift @_;
   
-  $isNewConfiguration eq 'false' unless $isNewConfiguration =~ /^true$/i;
-  $isFullClone eq 'false' unless $isFullClone =~ /^true$/i;
+  $isNewConfiguration = 'false' unless $isNewConfiguration =~ /^true$/i;
+  $isFullClone = 'false' unless $isFullClone =~ /^true$/i;
   
   my @machine_data;
 
@@ -1500,8 +1500,8 @@ sub priv_LibraryCloneToWorkspace {
   my $isfullclone     = shift @_;
   my $storagelease    = shift @_;
 
-  $isnew eq 'false' unless $isnew =~ /^true$/i;
-  $isfullclone eq 'false' unless $isfullclone =~ /^true$/i;
+  $isnew = 'false' unless $isnew =~ /^true$/i;
+  $isfullclone = 'false' unless $isfullclone =~ /^true$/i;
   
   my @machine_data;
 

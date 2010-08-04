@@ -1,22 +1,16 @@
-# Before `make install' is performed this script should be runnable with
-# `make test'. After `make install' it should work as `perl test.pl'
-
-#########################
-
-# change 'tests => 1' to 'tests => last_test_to_print';
-
+use strict;
 use Test;
+
+# Test a basic use statement
+
 BEGIN { plan tests => 2 };
 use VMware::API::LabManager;
-ok(1); # If we made it this far, we're ok.
+ok(1);
 
-#########################
-
-# Insert your test code below, the Test module is use()ed here so read
-# its man page ( perldoc Test ) for help writing this test script.
+# Test loading the module
 
 my $labman = new VMware::API::LabManager (
-  qw/username password server orgname workspace 0 0/
+  qw/username password localhost orgname workspace 0 0/
 );
 
 ok(defined $labman);
