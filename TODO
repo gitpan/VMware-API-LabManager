@@ -1,0 +1,12 @@
+TODO!
+
+These items are goals and plans for the future for this module. They recognize
+deficiencies and inefficiencies in the current module:
+
+- Configuration values for timeouts and such
+- Add all internal methods
+- Improve documentation on return values on all methods
+- Verify that all methods are complete
+- Better handling of method handles
+- Better handling of errors
+- Handle all "singleton" return conditions to force arrays when appropriate

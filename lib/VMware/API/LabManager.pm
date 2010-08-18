@@ -1,6 +1,7 @@
 package VMware::API::LabManager;
 
 use SOAP::Lite; # +trace => 'debug';
+use warnings;
 use strict;
 
 =head1 NAME
@@ -9,11 +10,11 @@ VMware::API::LabManager - The VMware LabManager API
 
 =head1 VERSION
 
-$Revision: 1.3 $
+  Version: v1.4 (2010/08/18)
 
 =cut
 
-our $VERSION =  ( split ' ', '$Revision: 1.3 $' )[1];
+our $VERSION = '1.4';
 
 =head1 SYNOPSIS
 
@@ -88,13 +89,13 @@ This method creates the Labmanager object.
 sub new {
   my $class = shift @_;
   my $self  = {};
-  
+
   my $username  = shift @_;
   my $password  = shift @_;
   my $hostname  = shift @_;
   my $orgname   = shift @_;
   my $workspace = shift @_;
-  
+
   $self->{debug} = shift @_;
   $self->{debug} = 0 unless defined $self->{debug};
 
@@ -639,7 +640,7 @@ sub GetSingleConfigurationByName {
   }
 }
 
-=head2 listconfigurations($type)
+=head2 ListConfigurations($type)
 
 This method returns an array or arrayref of configuration objects for the current
 workspace or library.
@@ -1024,6 +1025,42 @@ sub priv_ConfigurationCaptureEx {
   }
 }
 
+=head2 priv_ConfigurationChangeOwner
+
+Changes the owner of the given config.
+
+=head3 Arguments
+
+=over
+
+=item * configurationId
+
+=item * newOwnerId
+
+=back
+
+=cut
+
+sub priv_ConfigurationChangeOwner {
+  my $self = shift @_;
+  my $conf = shift @_;
+  my $own  = shift @_;
+
+  $self->{ConfigurationChangeOwner} = 
+    $self->{soap_priv}->ConfigurationChangeOwner( 
+      $self->{auth_header}, 
+      SOAP::Data->name('configurationId' => $conf )->type('s:int'),
+      SOAP::Data->name('newOwnerId'      => $own  )->type('s:int'),
+    );
+
+  if ( $self->{ConfigurationChangeOwner}->fault ) {
+    $self->_fault( $self->{ConfigurationChangeOwner}->fault );
+    return $self->{ConfigurationChangeOwner}->fault;
+  } else {
+    return $self->{ConfigurationChangeOwner}->result;
+  }
+}
+
 =head2 priv_ConfigurationCopy
 
 This method copys a configuration to a new datastore. (Full clone)
@@ -1313,7 +1350,6 @@ sub priv_ConfigurationExport {
   }
 }
 
-
 =head2 priv_ConfigurationImport
 
 =head3 Arguments
@@ -1364,6 +1400,70 @@ sub priv_ConfigurationImport {
   }
 }
 
+=head2 priv_GetAllWorkspaces
+
+=head3 Arguments
+
+=over
+
+=item NONE
+
+=back
+
+=head3 Arguments
+
+Returns an array of workspace objects.
+
+=cut
+
+sub priv_GetAllWorkspaces {
+  my $self = shift @_;
+  $self->{GetAllWorkspaces} = $self->{soap_priv}->GetAllWorkspaces( $self->{auth_header} );
+
+  if ( $self->{GetAllWorkspaces}->fault ) {
+    $self->_fault( $self->{GetAllWorkspaces}->fault );
+    return $self->{GetAllWorkspaces}->fault;
+  }
+
+  my $ret = $self->{GetAllWorkspaces}->result;
+
+  my $array = [ $ret ];
+  $array = [ $ret->{Workspace} ] if ref $ret and ref $ret->{Workspace} eq 'HASH';
+  $array =   $ret->{Workspace}   if ref $ret and ref $ret->{Workspace} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
+
+=head2 priv_GetNetworkInfo
+
+=head3 Arguments
+
+=over
+
+=item * vmID - VM id number
+
+=back
+
+=cut
+
+sub priv_GetNetworkInfo {
+  my $self = shift @_;
+  my $vmid = shift @_;
+  
+  $self->{GetNetworkInfo} = 
+    $self->{soap_priv}->GetNetworkInfo(
+      $self->{auth_header}, 
+	  SOAP::Data->name('vmID'=>$vmid)->type('s:int')
+	);
+
+  if ( $self->{GetNetworkInfo}->fault ) {
+    $self->_fault( $self->{GetNetworkInfo}->fault );
+    return $self->{GetNetworkInfo}->fault;
+  } else {
+    return $self->{GetNetworkInfo}->result;
+  }
+}
+
 =head2 priv_GetObjectConditions
 
 =head3 Arguments
@@ -1403,33 +1503,171 @@ sub priv_GetObjectConditions {
   }
 }
 
-=head2 priv_GetNetworkInfo
+=head2 priv_GetOrganization
 
 =head3 Arguments
 
 =over
 
-=item * vmID - VM id number
+=item * organizationId
 
 =back
 
 =cut
 
-sub priv_GetNetworkInfo {
+sub priv_GetOrganization {
   my $self = shift @_;
-  my $vmid = shift @_;
+  my $oid  = shift @_;
   
-  $self->{GetNetworkInfo} = 
-    $self->{soap_priv}->GetNetworkInfo(
+  $self->{GetOrganization} = 
+    $self->{soap_priv}->GetOrganization(
       $self->{auth_header}, 
-	  SOAP::Data->name('vmID'=>$vmid)->type('s:int')
+	  SOAP::Data->name('organizationId'=>$oid)->type('s:int')
 	);
 
-  if ( $self->{GetNetworkInfo}->fault ) {
-    $self->_fault( $self->{GetNetworkInfo}->fault );
-    return $self->{GetNetworkInfo}->fault;
+  if ( $self->{GetOrganization}->fault ) {
+    $self->_fault( $self->{GetOrganization}->fault );
+    return $self->{GetOrganization}->fault;
   } else {
-    return $self->{GetNetworkInfo}->result;
+    return $self->{GetOrganization}->result;
+  }
+}
+
+=head2 priv_GetOrganizations
+
+=head3 Arguments
+
+=over
+
+=item NONE
+
+=back
+
+=head3 Arguments
+
+Returns an array of organization refs.
+
+=cut
+
+sub priv_GetOrganizations {
+  my $self = shift @_;  
+  $self->{GetOrganizations} = $self->{soap_priv}->GetOrganizations( $self->{auth_header} );
+
+  if ( $self->{GetOrganizations}->fault ) {
+    $self->_fault( $self->{GetOrganizations}->fault );
+    return $self->{GetOrganizations}->fault;
+  }
+
+  my $ret = $self->{GetOrganizations}->result;
+
+  my $array = [ $ret ];
+  $array = [ $ret->{Organization} ] if ref $ret and ref $ret->{Organization} eq 'HASH';
+  $array =   $ret->{Organization}   if ref $ret and ref $ret->{Organization} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
+
+=head2 priv_GetOrganizationByName
+
+=head3 Arguments
+
+=over
+
+=item * organizationName
+
+=back
+
+=cut
+
+sub priv_GetOrganizationByName {
+  my $self = shift @_;
+  my $name = shift @_;
+  
+  $self->{GetOrganizationByName} = 
+    $self->{soap_priv}->GetOrganizationByName(
+      $self->{auth_header}, 
+	  SOAP::Data->name('organizationName'=>$name)->type('s:string')
+	);
+
+  if ( $self->{GetOrganizationByName}->fault ) {
+    $self->_fault( $self->{GetOrganizationByName}->fault );
+    return $self->{GetOrganizationByName}->fault;
+  } else {
+    return $self->{GetOrganizationByName}->result;
+  }
+}
+
+=head2 priv_GetOrganizationWorkspaces
+
+=head3 Arguments
+
+=over
+
+=item * organizationId
+
+=back
+
+=head3 Returns
+
+An array of Workspace objects that are in the given organizations.
+
+=cut
+
+sub priv_GetOrganizationWorkspaces {
+  my $self = shift @_;
+  my $oid  = shift @_;
+  
+  $self->{GetOrganizationWorkspaces} = 
+    $self->{soap_priv}->GetOrganizationWorkspaces(
+      $self->{auth_header}, 
+	  SOAP::Data->name('organizationId'=>$oid)->type('s:int')
+	);
+
+  if ( $self->{GetOrganizationWorkspaces}->fault ) {
+    $self->_fault( $self->{GetOrganizationWorkspaces}->fault );
+    return $self->{GetOrganizationWorkspaces}->fault;
+  }
+
+  my $ret = $self->{GetOrganizationWorkspaces}->result;
+
+  my $array = [ $ret ];
+  $array = [ $ret->{Workspace} ] if ref $ret and ref $ret->{Workspace} eq 'HASH';
+  $array =   $ret->{Workspace}   if ref $ret and ref $ret->{Workspace} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
+
+=head2 priv_GetUser
+
+=head3 Arguments
+
+=over
+
+=item * userName
+
+=back
+
+=head3 Returns
+
+User object.
+
+=cut
+
+sub priv_GetUser {
+  my $self = shift @_;
+  my $name = shift @_;
+  
+  $self->{GetUser} = 
+    $self->{soap_priv}->GetUser(
+      $self->{auth_header}, 
+	  SOAP::Data->name('userName'=>$name)->type('s:string')
+	);
+
+  if ( $self->{GetUser}->fault ) {
+    $self->_fault( $self->{GetUser}->fault );
+    return $self->{GetUser}->fault;
+  } else {
+    return $self->{GetUser}->result;
   }
 }
 
@@ -1455,8 +1693,12 @@ sub priv_GetWorkspaceByName {
 	  SOAP::Data->name('workspaceName'=>$name)->type('s:string')
 	);
 
-  $self->_fault( $self->{GetWorkspaceByName}->fault ) if $self->{GetWorkspaceByName}->fault;
-  return $self->{GetWorkspaceByName}->result;
+  if ( $self->{GetWorkspaceByName}->fault ) {
+    $self->_fault( $self->{GetWorkspaceByName}->fault );
+    return $self->{GetWorkspaceByName}->fault;
+  } else {
+    return $self->{GetWorkspaceByName}->result;
+  }
 }
 
 =head2 priv_LibraryCloneToWorkspace
@@ -1548,27 +1790,43 @@ This method returns an array of type Machine. The method returns one Machine obj
 
 sub priv_ListTemplates {
   my $self = shift @_;
+  $self->{ListTemplates} = $self->{soap_priv}->ListTemplates( $self->{auth_header} );
 
-  $self->_debug("LISTING TEMPLATES") if $self->{debug};
+  if ( $self->{ListTemplates}->fault ) {
+    $self->_fault( $self->{ListTemplates}->fault );
+    return $self->{ListTemplates}->fault;
+  }
 
-  my $lt = $self->{soap_priv}->ListTemplates( $self->{auth_header} );
-  $self->_fault( $lt->fault ) if $lt->fault;
-
-  my $ret = $lt->result;
+  my $ret = $self->{ListTemplates}->result;
 
   my $array = [ $ret ];
   $array = [ $ret->{Template} ] if ref $ret and ref $ret->{Template} eq 'HASH';
   $array =   $ret->{Template}   if ref $ret and ref $ret->{Template} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
 
-  if ( scalar(@$array) and $self->{debug} ) {
-    $self->_debug('*'x20);
-    for my $config (@$array) {
-      for my $k ( sort keys(%$config) ) {
-        $self->_debug("$k: $config->{$k}");
-      }
-      $self->_debug('*'x20);
-    }
+=head2 priv_ListUsers
+
+This method returns an array of type Users. The method returns one User object for 
+each User imported into LabMan.
+
+=cut
+
+sub priv_ListUsers {
+  my $self = shift @_;
+  $self->{ListUsers} = $self->{soap_priv}->ListUsers( $self->{auth_header} );
+
+  if ( $self->{ListUsers}->fault ) {
+    $self->_fault( $self->{ListUsers}->fault );
+    return $self->{ListUsers}->fault;
   }
+
+  my $ret = $self->{ListUsers}->result;
+
+  my $array = [ $ret ];
+  $array = [ $ret->{User} ] if ref $ret and ref $ret->{User} eq 'HASH';
+  $array =   $ret->{User}   if ref $ret and ref $ret->{User} eq 'ARRAY';
   
   return wantarray ? @$array : $array;
 }
@@ -1674,6 +1932,129 @@ sub priv_StorageServerVMFSFindByName {
 	my $result = $self->{StorageServerVMFSFindByName}->result;
 	my $datastore = $$result{"label"}; # Need to be fixed. Currently in use?
 	return $datastore;
+  }
+}
+
+=head2 priv_TemplateExport
+
+Exports a template out to a UNC path for later import.
+
+=head3 Arguments
+
+=over
+
+=item * template_id
+
+=item * uncPath
+
+=item * username
+
+=item * password
+
+=back
+
+=cut
+
+sub priv_TemplateExport {
+  my $self = shift @_;
+  my $temp = shift @_;
+  my $unc  = shift @_;
+  my $user = shift @_;
+  my $pass = shift @_;
+  
+  $self->{TemplateExport} = 
+    $self->{soap_priv}->TemplateExport(
+      $self->{auth_header}, 
+	  SOAP::Data->name('template_id' =>$temp)->type('s:int'),
+	  SOAP::Data->name('uncPath'     =>$unc )->type('s:string'),
+	  SOAP::Data->name('username'    =>$user)->type('s:string'),
+	  SOAP::Data->name('password'    =>$pass)->type('s:string'),
+	);
+
+  if ( $self->{TemplateExport}->fault ) {
+    $self->_fault( $self->{TemplateExport}->fault );
+    return $self->{TemplateExport}->fault;
+  } else {
+    return $self->{TemplateExport}->result;
+  }
+}
+
+=head2 priv_TemplateImport
+
+=head3 Arguments
+
+=over
+
+=item * UNCPath
+
+=item * dirUsername
+
+=item * dirPassword
+
+=item * name
+
+=item * description
+
+=item * storageName
+
+=item * parameterList
+
+=back
+
+=cut
+
+sub priv_TemplateImport {
+  my $self = shift @_;
+  my $unc  = shift @_;
+  my $user = shift @_;
+  my $pass = shift @_;
+  my $name = shift @_;
+  my $desc = shift @_;
+  my $stor = shift @_;
+
+  my $list = shift @_;
+
+  # Virtualization Technology: 6 (VMWare ESX Server 3.0)
+  # This comes from the Private API documentation
+  my $vsid = 6;
+  
+  my $paramlist = \SOAP::Data->value(
+
+	 SOAP::Data->name('VMParameter' => \SOAP::Data->value(
+	   SOAP::Data->name('parameter_name' => 'VCPUCOUNT')->type(''),
+       SOAP::Data->name('parameter_value' => '4')->type('')
+      )),
+
+     SOAP::Data->name('VMParameter' => \SOAP::Data->value(
+       SOAP::Data->name('parameter_name' => 'GUESTOS')->type(''),
+       SOAP::Data->name('parameter_value' => 'RHEL4')->type('')
+     )),
+
+	 SOAP::Data->name('VMParameter' => \SOAP::Data->value(
+       SOAP::Data->name('parameter_name' => 'HW_VERSION')->type(''),
+       SOAP::Data->name('parameter_value' => $7)->type('')
+     )),
+
+  );
+
+  $self->{TemplateImport} = 
+    $self->{soap_priv}->TemplateImport(
+      $self->{auth_header},
+	  SOAP::Data->name('UNCPath'     =>$unc )->type('s:string'),
+	  SOAP::Data->name('dirUsername' =>$user)->type('s:string'),
+	  SOAP::Data->name('dirPassword' =>$pass)->type('s:string'),
+	  SOAP::Data->name('name'        =>$name)->type('s:string'),
+	  SOAP::Data->name('description' =>$desc)->type('s:string'),
+	  SOAP::Data->name('VSTypeID,'   =>$desc)->type('s:int'),
+	  SOAP::Data->name('storageServerName,' => $stor)->type('s:string'),
+	  SOAP::Data->name('parameterList' => $paramlist )
+	);
+
+  if ( $self->{TemplateImport}->fault ) {
+    $self->_fault( $self->{TemplateImport}->fault );
+    return $self->{TemplateImport}->fault;
+  } else {
+    return $self->{TemplateImport}->result;
   }
 }
 
@@ -1827,12 +2208,62 @@ sub priv_WorkspaceCreate {
   return $self->{WorkspaceCreate}->result;
 }
 
-return 1;
+1;
+
+__END__
+
+=head1 BUGS AND LIMITATIONS
+
+=head3 priv_ConfigurationAddMachineEx()
+
+This call does not currently build the correct Ethernet driver information.
+
+=head3 ConfigurationCheckout() API errors.
+
+If you get the following SOAP Error: 
+
+=over 4
+
+Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main' ---> Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main'
+
+=back
+
+This is because there are multiple workspaces named "Main", in different organizations. Apparently this API call doesn't limit the check for workspace name against the organization you authenticated with.
+
+A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
+
+This is a known issue with LabManager 4.
+
+=head3 priv_ConfigurationCaptureEx()
+
+The API documents for these calls have a typo. The parameter accepted by the SOAP call is ConfigurationId and not ConfigurationID. Reviewing the WSDL shows the correct parameters accepted by ther server.
+
+=head1 CONFUSING ERROR CODES
+
+By design, the textual error codes presented by this module are directly passed 
+from Lab Manager. They are not generated by this library.
+
+That being said, sometimes Lab Manager does not provide the clearest error 
+description. Hopefully the following hints can help you save time when debugging:
+
+=head3 "The configuration you were looking at is no longer accessible."
+
+This means that the config ID you used references a non-existant configuration.
+This is commonly caused by a mistake in what ID you are using on a given call. 
+(A machine id accidentally used in place of a config id, etc.)
+
+=head3 "Server was unable to read the request. There is an error in XML document."
+
+This bit of engrish most commonly crops up when the wrong data type is used as a
+parameter in a call. A good example is using a configuration name when a 
+configuration ID is expected. (String vs Int causing the server to refuse the XML
+document.)
+
 
 =head1 AUTHOR
 
- David F. Kinder, Jr, <dkinder@davidkinder.net>
  Phillip Pollard, <bennie@cpan.org>
+ David F. Kinder, Jr, <dkinder@davidkinder.net>
 
 =head1 CONTRIBUTIONS
 
@@ -1841,6 +2272,10 @@ return 1;
 =head1 DEPENDENCIES
 
  SOAP::Lite
+
+=head1 LICENSE AND COPYRIGHT 
+
+ Released under Perl Artistic License
 
 =head1 SEE ALSO
 
