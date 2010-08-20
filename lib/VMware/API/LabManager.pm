@@ -8,17 +8,13 @@ use strict;
 
 VMware::API::LabManager - The VMware LabManager API
 
-=head1 VERSION
-
-  Version: v1.4 (2010/08/18)
-
 =cut
 
-our $VERSION = '1.4';
+our $VERSION = '1.5';
 
 =head1 SYNOPSIS
 
-This module has been developed agains VMware vCenter Lab Manager 4.0 (4.0.1.1233)
+This module has been developed against VMware vCenter Lab Manager 4.0 (4.0.1.1233)
 
 Code to checkout, deploy, undeploy and delete a configuration:
 
@@ -778,25 +774,20 @@ sub LiveLink
 
 This method performs one of the following machine actions as indicated by the action identifier:
 
-=over
-
-=item 1  Power on. Turns on a machine.
-
-=item 2  Power off. Turns off a machine. Nothing is saved.
-
-=item 3  Suspend. Freezes a machine CPU and state.
-
-=item 4  Resume. Resumes a suspended machine.
-
-=item 5  Reset. Reboots a machine.
-
-=item 6  Snapshot. Save a machine state at a specific point in time.
-
-=item 7  Revert. Returns a machine to a snapshot state.
-
-=item 8  Shutdown. Shuts down a machine before turning off.
-
-=back
+  * 1  Power on. Turns on a machine.
+  * 2  Power off. Turns off a machine. Nothing is saved.
+  * 3  Suspend. Freezes a machine CPU and state.
+  * 4  Resume. Resumes a suspended machine.
+  * 5  Reset. Reboots a machine.
+  * 6  Snapshot. Save a machine state at a specific point in time.
+  * 7  Revert. Returns a machine to a snapshot state.
+  * 8  Shutdown Guest. Shuts down a machine before turning off.
+  * 9 for Consolidate
+  * 10 for Eject CD
+  * 11 for Eject Floppy
+  * 12 for Deploy
+  * 13 for Undeploy
+  * 14 for Force Undeploy
 
 =head3 Arguments
 
@@ -1513,6 +1504,10 @@ sub priv_GetObjectConditions {
 
 =back
 
+=head3 Returns
+
+Organization object
+
 =cut
 
 sub priv_GetOrganization {
@@ -1635,6 +1630,40 @@ sub priv_GetOrganizationWorkspaces {
   $array =   $ret->{Workspace}   if ref $ret and ref $ret->{Workspace} eq 'ARRAY';
   
   return wantarray ? @$array : $array;
+}
+
+=head2 priv_GetTemplate
+
+=head3 Arguments
+
+=over
+
+=item * template id
+
+=back
+
+=head3 Returns
+
+Template object.
+
+=cut
+
+sub priv_GetTemplate {
+  my $self = shift @_;
+  my $id  = shift @_;
+  
+  $self->{GetTemplate} = 
+    $self->{soap_priv}->GetTemplate(
+      $self->{auth_header}, 
+	  SOAP::Data->name('id'=>$id)->type('s:int')
+	);
+
+  if ( $self->{GetTemplate}->fault ) {
+    $self->_fault( $self->{GetTemplate}->fault );
+    return $self->{GetTemplate}->fault;
+  } else {
+    return $self->{GetTemplate}->result;
+  }
 }
 
 =head2 priv_GetUser
@@ -1945,7 +1974,7 @@ Exports a template out to a UNC path for later import.
 
 =item * template_id
 
-=item * uncPath
+=item * UNCPath
 
 =item * username
 
@@ -1966,7 +1995,7 @@ sub priv_TemplateExport {
     $self->{soap_priv}->TemplateExport(
       $self->{auth_header}, 
 	  SOAP::Data->name('template_id' =>$temp)->type('s:int'),
-	  SOAP::Data->name('uncPath'     =>$unc )->type('s:string'),
+	  SOAP::Data->name('UNCPath'     =>$unc )->type('s:string'),
 	  SOAP::Data->name('username'    =>$user)->type('s:string'),
 	  SOAP::Data->name('password'    =>$pass)->type('s:string'),
 	);
@@ -2020,15 +2049,15 @@ sub priv_TemplateImport {
   
   my $paramlist = \SOAP::Data->value(
 
-	 SOAP::Data->name('VMParameter' => \SOAP::Data->value(
-	   SOAP::Data->name('parameter_name' => 'VCPUCOUNT')->type(''),
-       SOAP::Data->name('parameter_value' => '4')->type('')
-      )),
+	 #SOAP::Data->name('VMParameter' => \SOAP::Data->value(
+	 #  SOAP::Data->name('parameter_name' => 'VCPUCOUNT')->type(''),
+     #  SOAP::Data->name('parameter_value' => '4')->type('')
+     # )),
 
-     SOAP::Data->name('VMParameter' => \SOAP::Data->value(
-       SOAP::Data->name('parameter_name' => 'GUESTOS')->type(''),
-       SOAP::Data->name('parameter_value' => 'RHEL4')->type('')
-     )),
+     #SOAP::Data->name('VMParameter' => \SOAP::Data->value(
+     #  SOAP::Data->name('parameter_name' => 'GUESTOS')->type(''),
+     #  SOAP::Data->name('parameter_value' => 'RHEL4')->type('')
+     #)),
 
 	 SOAP::Data->name('VMParameter' => \SOAP::Data->value(
        SOAP::Data->name('parameter_name' => 'HW_VERSION')->type(''),
@@ -2045,8 +2074,8 @@ sub priv_TemplateImport {
 	  SOAP::Data->name('dirPassword' =>$pass)->type('s:string'),
 	  SOAP::Data->name('name'        =>$name)->type('s:string'),
 	  SOAP::Data->name('description' =>$desc)->type('s:string'),
-	  SOAP::Data->name('VSTypeID,'   =>$desc)->type('s:int'),
-	  SOAP::Data->name('storageServerName,' => $stor)->type('s:string'),
+	  SOAP::Data->name('VSTypeID'   =>$vsid)->type('s:int'),
+	  SOAP::Data->name('storageServerName' => $stor)->type('s:string'),
 	  SOAP::Data->name('parameterList' => $paramlist )
 	);
 
@@ -2146,6 +2175,22 @@ sub priv_TemplateImportFromSMB {
 
 =item * Action
 
+The action is a number representing any of the following:
+
+In case other people end up here via Google like I did.
+
+These values are listed in the internal API chm if you dig for them:
+
+* 1 for Deploy
+* 2 for Undeploy in Discard State
+* 3 for Delete
+* 4 for Reset
+* 5 for Make Shared
+* 6 for Make Private
+* 7 for Publish
+* 8 for Unpublish
+* 9 for Undeploy in Save State
+
 =back
 
 =cut
@@ -2214,6 +2259,33 @@ __END__
 
 =head1 BUGS AND LIMITATIONS
 
+=head3 Authentication and latentcy
+
+The API is designed by VMware to require an authentication header with every
+SOAP action. This means that you are re-autneticated on each action you perform.
+As stated in the VMware Lab Manager SOAP API Guide v2.4, pg 13:
+
+  Client applications must provide valid credentials—a Lab Manager user account and password—with each Lab Manager Web service method call. The user account must have Administrator privileges on the Lab Manager Server. The Lab Manager Server authenticates these credentials.
+
+If your Lab Manager is configured for remote authentication and is slow to log-in,
+this means you will see a performance drop in the speed of this API. Every method 
+call on this module (a method call in this module representing an API SOAP method call)
+will take the same amount of time it takes you to initially log into the Lab Manager
+interface plus the actual processing time of the action.
+
+This is complicated by a known issue that some complex API calls will internally
+perform several actions in Lab Manager, and you might pay that authentication call
+4 or 5 times as the action processes. This known issue, is slated to be resolved 
+on the next major release of Lab Manager.
+
+The web interface to Lab Manager allows you to cache credentials after initial 
+login. The web API does not. (See above quote.) You will pay for authentication
+time on all API calls.
+
+One potential workaround is to use a local user account for API actions. Local
+accounts can be created and co-exist while remote (LDAP/AD) authentication is 
+used. Local user accounts authenticate much quicker than other forms.
+
 =head3 priv_ConfigurationAddMachineEx()
 
 This call does not currently build the correct Ethernet driver information.
@@ -2259,33 +2331,45 @@ parameter in a call. A good example is using a configuration name when a
 configuration ID is expected. (String vs Int causing the server to refuse the XML
 document.)
 
+=head3 "Object reference not set to an instance of an object."
+
+This lovely gem usually pops up when a required parameter is missing in a 
+given SOAP call. This probably reflects a typo or capitalization error in the
+underlying wrapper call. Let me know if you figure out what is up. As is 
+referenced in the BUGS AND LIMITATIONS section, the documentation for the API
+is incorrect in some places. The WSDL on the server is considered authorative
+and I'd check that first for resolution.
+
+=head1 VERSION
+
+  Version: v1.5 (2010/08/19)
 
 =head1 AUTHOR
 
- Phillip Pollard, <bennie@cpan.org>
- David F. Kinder, Jr, <dkinder@davidkinder.net>
+  Phillip Pollard, <bennie@cpan.org>
+  David F. Kinder, Jr, <dkinder@davidkinder.net>
 
 =head1 CONTRIBUTIONS
 
- Cameron Berkenpas <cberkenpas@paypal.com>
+  Cameron Berkenpas <cberkenpas@paypal.com>
 
 =head1 DEPENDENCIES
 
- SOAP::Lite
+  SOAP::Lite
 
 =head1 LICENSE AND COPYRIGHT 
 
- Released under Perl Artistic License
+  Released under Perl Artistic License
 
 =head1 SEE ALSO
 
-VMWare Labmanger 
- http://www.vmware.com/products/labmanager/
+ VMWare Labmanger 
+  http://www.vmware.com/products/labmanager/
 
-VMWare Labmanager SOAP API Guide 
- http://www.vmware.com/pdf/lm40_soap_api_guide.pdf
+ VMWare Labmanager SOAP API Guide 
+  http://www.vmware.com/pdf/lm40_soap_api_guide.pdf
 
-VMWare Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure 
- http://www.vmware.com/files/pdf/lm_whitepaper.pdf
+ VMWare Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure 
+  http://www.vmware.com/files/pdf/lm_whitepaper.pdf
 
 =cut

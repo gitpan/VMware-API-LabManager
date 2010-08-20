@@ -1,6 +1,25 @@
 Revision history for VMware::API::LabManager
 
-1.4  2010/08/17
+1.5  2010/08/19
+
+  Added "Authentication and latentcy" under "BUGS AND LIMITATIONS" in the POD.
+
+  Added:
+    priv_GetTemplate()
+
+  Corrected:
+    priv_TemplateExport() - UNCPath parameter capitalization error.
+    priv_TemplateImport() - Malformed parameter names.
+    
+  Improved:
+    MachinePerformAction() - Actions 9-14 now listed in POD.
+    priv_TemplatePerformAction() - Action values now listed in POD.
+
+1.4  2010/08/18
+
+  Added an "CONFUSING ERROR CODES" section to the POD.
+
+  Created a TODO file.
 
   Added:
     priv_ConfigurationChangeOwner()
@@ -10,12 +29,14 @@ Revision history for VMware::API::LabManager
     priv_GetOrganizationByName()
     priv_GetOrganizationWorkspaces()
     priv_GetUser()
+    priv_ListUsers()
+    priv_TemplateExport()
+    priv_TemplateImport()
 
   Improved:
-    ListConfigurations() - documentation
-    priv_GetWorkspaceByName() - fault handling
-
-  Created a TODO file
+    ListConfigurations() - Documentation.
+    priv_GetWorkspaceByName() - Better fault handling.
+    priv_ListTemplates - Better fault handling.
 
 1.3  2010/08/03
 
@@ -53,23 +74,23 @@ Revision history for VMware::API::LabManager
 
   Added the following private API calls:  
 
-    priv_ConfigurationAddMachineEx
-    priv_ConfigurationCaptureEx
-    priv_ConfigurationCopy
-    priv_ConfigurationCreateEx
-    priv_ConfigurationExport
-    priv_ConfigurationImport
-    priv_GetNetworkInfo
-    priv_GetObjectConditions
-    priv_GetWorkspaceByName
-    priv_LibraryCloneToWorkspace
-    priv_ListTemplates
-    priv_NetworkInterfaceCreate
-    priv_NetworkInterfaceDelete
-    priv_StorageServerVMFSFindByName
-    priv_TemplateImportFromSMB
-    priv_TemplatePerformAction
-    priv_WorkspaceCreate
+    priv_ConfigurationAddMachineEx()
+    priv_ConfigurationCaptureEx()
+    priv_ConfigurationCopy()
+    priv_ConfigurationCreateEx()
+    priv_ConfigurationExport()
+    priv_ConfigurationImport()
+    priv_GetNetworkInfo()
+    priv_GetObjectConditions()
+    priv_GetWorkspaceByName()
+    priv_LibraryCloneToWorkspace()
+    priv_ListTemplates()
+    priv_NetworkInterfaceCreate()
+    priv_NetworkInterfaceDelete()
+    priv_StorageServerVMFSFindByName()
+    priv_TemplateImportFromSMB()
+    priv_TemplatePerformAction()
+    priv_WorkspaceCreate()
 
   ConfigurationDeployEx2 moved to priv_ConfigurationDeployEx2.
 

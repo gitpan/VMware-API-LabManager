@@ -29,7 +29,7 @@ USAGE:
 AUTHORSHIP:
 ================================================================================
 
-    VMware::API::LabManager v1.4 (2010/08/18)
+    VMware::API::LabManager v1.5 (2010/08/19)
 
     (c) 2009-2010, Phillip Pollard <bennie@cpan.org>
     Released under the Perl Artistic License
