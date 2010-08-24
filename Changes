@@ -1,5 +1,19 @@
 Revision history for VMware::API::LabManager
 
+1.6  2010/08/23
+
+  Removed errant unicode emdashes from the POD.
+
+  Added:
+    priv_ConfigurationMove()
+    priv_MachineUpgradeVirtualHardware()
+    priv_TemplateChangeOwner()
+
+  Improved:
+    ListConfigurations() - empty result set condition.
+    priv_ListTemplates() - empty result set condition.
+    priv_ListUsers() - empty result set condition.
+
 1.5  2010/08/19
 
   Added "Authentication and latentcy" under "BUGS AND LIMITATIONS" in the POD.
@@ -17,7 +31,7 @@ Revision history for VMware::API::LabManager
 
 1.4  2010/08/18
 
-  Added an "CONFUSING ERROR CODES" section to the POD.
+  Added the "CONFUSING ERROR CODES" section to the POD.
 
   Created a TODO file.
 
@@ -64,6 +78,8 @@ Revision history for VMware::API::LabManager
 
 1.1 (1.0) 2010/07/24
 
+  Forked from VMWare::LabmanSoap (alpha) to add features and resolve bugs.
+
   Moved all printing on STDOUT to a debug method.
 
   Split private and public SOAP calls to use their respective URLs.
@@ -71,6 +87,8 @@ Revision history for VMware::API::LabManager
   Provided option to handle faults without a forced die()
 
   Standardized fault handling on all methods.
+
+  ConfigurationDeployEx2 moved to priv_ConfigurationDeployEx2.
 
   Added the following private API calls:  
 
@@ -91,7 +109,3 @@ Revision history for VMware::API::LabManager
     priv_TemplateImportFromSMB()
     priv_TemplatePerformAction()
     priv_WorkspaceCreate()
-
-  ConfigurationDeployEx2 moved to priv_ConfigurationDeployEx2.
-
-  Forked from VMWare::LabmanSoap (alpha) to add features and resolve bugs.

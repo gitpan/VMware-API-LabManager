@@ -10,7 +10,7 @@ VMware::API::LabManager - The VMware LabManager API
 
 =cut
 
-our $VERSION = '1.5';
+our $VERSION = '1.6';
 
 =head1 SYNOPSIS
 
@@ -86,42 +86,78 @@ sub new {
   my $class = shift @_;
   my $self  = {};
 
-  my $username  = shift @_;
-  my $password  = shift @_;
-  my $hostname  = shift @_;
-  my $orgname   = shift @_;
-  my $workspace = shift @_;
+  $self->{username} = shift @_;
+  $self->{password} = shift @_;
+  $self->{hostname}  = shift @_;
+  $self->{orgname}   = shift @_;
+  $self->{workspace} = shift @_;
 
-  $self->{debug} = shift @_;
-  $self->{debug} = 0 unless defined $self->{debug};
+  $self->{debug}        = 0; # Defaults to no debug info
+  $self->{die_on_fault} = 1; # Defaults to die'ing on an error
+  $self->{ssl_timeout}  = 3600; # Defaults to 1h
 
-  our $die_on_fault = shift @_;
-  $die_on_fault = 1 unless defined $die_on_fault;
-  
-	$self->{soap} = SOAP::Lite
-		-> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
-		-> default_ns('http://vmware.com/labmanager')
-		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManager.asmx', timeout => 3600 );
+  bless($self,$class);
 
-	$self->{soap_priv} = SOAP::Lite
-		-> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
-		-> default_ns('http://vmware.com/labmanager')
-		-> proxy('https://' . $hostname . '/LabManager/SOAP/LabManagerInternal.asmx', timeout => 3600 );
+  my $old_debug = shift @_;
 
-	$self->{soap}->readable(1);
-	$self->{soap_priv}->readable(1);
+  if ( defined $old_debug ) {
+    warn "Old method for setting 'debug' used. You should use config() for this.";
+    $self->config('debug',$old_debug);
+  }
 
-	$self->{auth_header} = SOAP::Header->new(
-		name => 'AuthenticationHeader',
-		attr => { xmlns => "http://vmware.com/labmanager" },
-		value => { username => $username, password => $password, organizationname => $orgname, workspacename => $workspace  },
-		);
+  my $old_die_on_fault = shift @_;
 
-  #if ( $self->{soap}->fault ){ $self->{LASTERROR} = $self->{soap}->fault }
+  if ( defined $old_die_on_fault ) {
+    warn "Old method for setting 'die_on_fault' used. You should use config() for this.";
+    $self->config('die_on_fault',$old_die_on_fault);
+  }
 
-  bless($self, $class);
+  $self->_regenerate();  
+
   $self->_debug("Loaded VMware::API::LabManager v" . our $VERSION . "\n") if $self->{debug};
   return $self;
+}
+
+=head3 config
+
+  $labman->config( debug => 1 );
+
+=over 4
+
+=item debug - 1 to turn on debugging. 0 for none. Defaults to 0.
+
+=item die_on_fault - 1 to cause the program to die verbosely on a soap fault. 0 for the fault object to be returned on the call and for die() to not be called. Defaults to 1. If you choose not to die_on_fault (for example, if you are writing a CGI) you will want to check all return objects to see if they are fault objects or not.
+
+=item ssl_timeout - seconds to wait for timeout. Defaults to 3600. (1hr) This is how long a transaction response will be waited for once submitted. For slow storage systems and full clones, you may want to up this higher. If you find yourself setting this to more than 6 hours, your Lab Manager setup is probably not in the best shape.
+
+=item hostname, orgname, workspace, username and password - All of these values can be changed from the original settings on new(). This is handing for performing multiple transactions across organizations.
+
+=back
+
+=cut
+
+sub config {
+  my $self = shift @_;
+
+  my %input = @_;
+  my @config_vals = qw/debug die_on_fault hostname orgname password ssl_timeout username workspace/;
+  my %config_vals = map { $_,1; } @config_vals;
+
+  for my $key ( keys %input ) {
+    if ( $config_vals{$key} ) {
+      $self->{$key} = $input{$key};
+    } else {
+      warn 'Config key "$key" is being ignored. Only the following options may be configured: '
+         . join(", ", @config_vals ) . "\n";
+    }
+  }
+
+  $self->_regenerate();
+
+  my %out;
+  map { $out{$_} = $self->{$_} } @config_vals;
+  
+  return wantarray ? %out : \%out;
 }
 
 =head3 getLastSOAPError
@@ -154,7 +190,13 @@ sub _debug {
 sub _fault {
   my $self = shift @_;
   my $data = shift @_;
+  my $soapobj;
   my $text;
+
+  if ( ref $data ) {
+    $soapobj = $data;
+    $data = $soapobj->fault;
+  }
   
   if ( ref $data and defined $data->{faultstring} ) {
     $text = $data->{faultstring};
@@ -165,13 +207,41 @@ sub _fault {
     $data = '';
   }
 
-  if ( our $die_on_fault ) {
-    warn "ERROR DETAILS:\n" . Dumper($data) if $self->{debug};
+  my $xml;
+  $xml = $soapobj->{_context}->{_transport}->{_proxy}->{_http_response}->{_request}->{_content}
+    if ref $soapobj;
+
+  if ( $self->{die_on_fault} ) {
+    warn "\n\nERROR DETAILS:\n" . Dumper($data) if $self->{debug};
+    warn "\n\nSUBMITTED XML:\n" . $xml if $xml; #if $self->{debug} and $xml;
     die "\n\nERROR: $text\n";
   } else {
     $self->{LASTERROR}->{data} = $data;
     $self->{LASTERROR}->{text} = $text;
   }
+}
+
+sub _regenerate {
+  my $self = shift @_;
+  
+  $self->{soap} = SOAP::Lite
+    -> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
+    -> default_ns('http://vmware.com/labmanager')
+    -> proxy('https://' . $self->{hostname} . '/LabManager/SOAP/LabManager.asmx', timeout => $self->{ssl_timeout} );
+
+  $self->{soap_priv} = SOAP::Lite
+    -> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
+    -> default_ns('http://vmware.com/labmanager')
+    -> proxy('https://' . $self->{hostname} . '/LabManager/SOAP/LabManagerInternal.asmx', timeout => $self->{ssl_timeout} );
+
+  $self->{soap}->readable(1);
+  $self->{soap_priv}->readable(1);
+
+  $self->{auth_header} = SOAP::Header->new(
+		name => 'AuthenticationHeader',
+		attr => { xmlns => "http://vmware.com/labmanager" },
+		value => { username => $self->{username}, password => $self->{password}, organizationname => $self->{orgname}, workspacename => $self->{workspace}  },
+  );
 }
 
 =head1 PUBLIC API METHODS
@@ -211,7 +281,7 @@ sub ConfigurationCapture {
     );
 
   if ( $self->{ConfigurationCapture}->fault ) {
-    $self->_fault( $self->{ConfigurationCapture}->fault );
+    $self->_fault( $self->{ConfigurationCapture} );
     return $self->{ConfigurationCapture}->fault;
   } else {
     return $self->{ConfigurationCapture}->result;
@@ -259,7 +329,7 @@ sub ConfigurationCheckout {
 	);
 
   if ( $self->{ConfigurationCheckout}->fault ) {
-    $self->_fault( $self->{ConfigurationCheckout}->fault );
+    $self->_fault( $self->{ConfigurationCheckout} );
     return $self->{ConfigurationCheckout}->fault;
   } else {
     return $self->{ConfigurationCheckout}->result;
@@ -293,7 +363,7 @@ sub ConfigurationClone {
         SOAP::Data->name('newWorkspaceName' => $newWSName )->type('s:string') );
 
   if ( $self->{ConfigurationClone}->fault ) {
-    $self->_fault( $self->{ConfigurationClone}->fault );
+    $self->_fault( $self->{ConfigurationClone} );
     return $self->{ConfigurationClone}->fault;
   } else {
     return $self->{ConfigurationClone}->result;
@@ -325,7 +395,7 @@ sub ConfigurationDelete {
   );
 
   if ( $self->{ConfigurationDelete}->fault ) {
-    $self->_fault( $self->{ConfigurationDelete}->fault );
+    $self->_fault( $self->{ConfigurationDelete} );
     return $self->{ConfigurationDelete}->fault;
   } else {
     return $self->{ConfigurationDelete}->result;
@@ -361,7 +431,7 @@ sub ConfigurationDeploy {
 		SOAP::Data->name('fenceMode' => $fencemode)->type('s:int') );
 		
   if ( $self->{ConfigurationDeploy}->fault ) {
-    $self->_fault( $self->{ConfigurationDeploy}->fault );
+    $self->_fault( $self->{ConfigurationDeploy} );
     return $self->{ConfigurationDeploy}->fault;
   } else {
     return $self->{ConfigurationDeploy}->result;
@@ -411,7 +481,7 @@ sub ConfigurationPerformAction {
 	SOAP::Data->name('action' => $action )->type('s:int') );
 
   if ( $self->{ConfigurationPerformAction}->fault ) {
-    $self->_fault( $self->{ConfigurationPerformAction}->fault );
+    $self->_fault( $self->{ConfigurationPerformAction} );
     return $self->{ConfigurationPerformAction}->fault;
   } else {
     return $self->{ConfigurationPerformAction}->result;
@@ -446,7 +516,7 @@ sub ConfigurationSetPublicPrivate {
   );
 
   if ( $self->{ConfigurationSetPublicPrivate}->fault ) {
-    $self->_fault( $self->{ConfigurationSetPublicPrivate}->fault );
+    $self->_fault( $self->{ConfigurationSetPublicPrivate} );
     return $self->{ConfigurationSetPublicPrivate}->fault;
   } else {
     return $self->{ConfigurationSetPublicPrivate}->result;
@@ -476,7 +546,7 @@ sub ConfigurationUndeploy {
 		SOAP::Data->name('configurationId' => $configID )->type('s:int'));
 
   if ( $self->{ConfigurationUndeploy}->fault ) {
-    $self->_fault( $self->{ConfigurationUndeploy}->fault );
+    $self->_fault( $self->{ConfigurationUndeploy} );
     return $self->{ConfigurationUndeploy}->fault;
   } else {
     return $self->{ConfigurationUndeploy}->result;
@@ -514,7 +584,7 @@ sub GetConfiguration {
     );
 
   if ( $self->{GetConfiguration}->fault ) {
-    $self->_fault( $self->{GetConfiguration}->fault );
+    $self->_fault( $self->{GetConfiguration} );
     return $self->{GetConfiguration}->fault;
   } else {
     return $self->{GetConfiguration}->result;
@@ -551,7 +621,7 @@ sub GetMachine {
 	);
 
   if ( $self->{GetMachine}->fault ) {
-    $self->_fault( $self->{GetMachine}->fault );
+    $self->_fault( $self->{GetMachine} );
     return $self->{GetMachine}->fault;
   } else {
     return $self->{GetMachine}->result;
@@ -593,7 +663,7 @@ sub GetMachineByName
 		SOAP::Data->name('name' => $name)->type('s:string'));
 
   if ( $self->{GetMachineByName}->fault ) {
-    $self->_fault( $self->{GetMachineByName}->fault );
+    $self->_fault( $self->{GetMachineByName} );
     return $self->{GetMachineByName}->fault;
   } else {
     return $self->{GetMachineByName}->result;
@@ -629,7 +699,7 @@ sub GetSingleConfigurationByName {
     SOAP::Data->name('name' => $config)->type('s:string'));
 
   if ( $self->{GetSingleConfigurationByName}->fault ) {
-    $self->_fault( $self->{GetMachineByName}->fault );
+    $self->_fault( $self->{GetMachineByName} );
     return $self->{GetSingleConfigurationByName}->fault;
   } else {
     return $self->{GetSingleConfigurationByName}->result;
@@ -667,13 +737,13 @@ sub ListConfigurations {
   $self->{ListConfigurations} = $self->{soap}->ListConfigurations( $self->{auth_header}, SOAP::Data->name('configurationType' => $type)->type('s:int'));
 
   if ( $self->{ListConfigurations}->fault ) {
-    $self->_fault( $self->{ListConfigurations}->fault );
+    $self->_fault( $self->{ListConfigurations} );
     return $self->{ListConfigurations}->fault;
   }
 
   my $ret = $self->{ListConfigurations}->result;
 
-  my $array = [];
+  my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Configuration} ] if ref $ret and ref $ret->{Configuration} eq 'HASH';
   $array =   $ret->{Configuration}   if ref $ret and ref $ret->{Configuration} eq 'ARRAY';
   
@@ -703,7 +773,7 @@ sub ListMachines {
     SOAP::Data->name('configurationId' => $config)->type('s:int'));
  
   if ( $self->{ListMachines}->fault ) {
-    $self->_fault( $self->{ListMachines}->fault );
+    $self->_fault( $self->{ListMachines} );
     return $self->{ListMachines}->fault;
   }
    
@@ -732,7 +802,7 @@ sub GetConsoleAccessInfo
 		SOAP::Data->name('machineId' => $machineId)->type('s:int'));
 
   if ( $self->{GetConsoleAccessInfo}->fault ) {
-    $self->_fault( $self->{GetConsoleAccessInfo}->fault );
+    $self->_fault( $self->{GetConsoleAccessInfo} );
     return $self->{GetConsoleAccessInfo}->fault;
   } else {
     return $self->{GetConsoleAccessInfo}->result;
@@ -763,7 +833,7 @@ sub LiveLink
 		SOAP::Data->name('configName' => $configName)->type('s:string'));
 
   if ( $self->{LiveLink}->fault ) {
-    $self->_fault( $self->{LiveLink}->fault );
+    $self->_fault( $self->{LiveLink} );
     return $self->{LiveLink}->fault;
   } else {
     return $self->{LiveLink}->result;
@@ -774,20 +844,37 @@ sub LiveLink
 
 This method performs one of the following machine actions as indicated by the action identifier:
 
-  * 1  Power on. Turns on a machine.
-  * 2  Power off. Turns off a machine. Nothing is saved.
-  * 3  Suspend. Freezes a machine CPU and state.
-  * 4  Resume. Resumes a suspended machine.
-  * 5  Reset. Reboots a machine.
-  * 6  Snapshot. Save a machine state at a specific point in time.
-  * 7  Revert. Returns a machine to a snapshot state.
-  * 8  Shutdown Guest. Shuts down a machine before turning off.
-  * 9 for Consolidate
-  * 10 for Eject CD
-  * 11 for Eject Floppy
-  * 12 for Deploy
-  * 13 for Undeploy
-  * 14 for Force Undeploy
+=over
+
+=item * 1  Power on. Turns on a machine.
+
+=item * 2  Power off. Turns off a machine. Nothing is saved.
+
+=item * 3  Suspend. Freezes a machine CPU and state.
+
+=item * 4  Resume. Resumes a suspended machine.
+
+=item * 5  Reset. Reboots a machine.
+
+=item * 6  Snapshot. Save a machine state at a specific point in time.
+
+=item * 7  Revert. Returns a machine to a snapshot state.
+
+=item * 8  Shutdown Guest. Shuts down a machine before turning off.
+
+=item * 9 for Consolidate
+
+=item * 10 for Eject CD
+
+=item * 11 for Eject Floppy
+
+=item * 12 for Deploy
+
+=item * 13 for Undeploy
+
+=item * 14 for Force Undeploy
+
+=back
 
 =head3 Arguments
 
@@ -812,7 +899,7 @@ sub MachinePerformAction {
 	SOAP::Data->name('action' => $action )->type('s:int') );
 
   if ( $self->{MachinePerformAction}->fault ) {
-    $self->_fault( $self->{MachinePerformAction}->fault );
+    $self->_fault( $self->{MachinePerformAction} );
     return $self->{MachinePerformAction}->fault;
   } else {
     return $self->{MachinePerformAction}->result;
@@ -891,7 +978,7 @@ sub priv_ConfigurationAddMachineEx {
 	);
 
   if ( $self->{ConfigurationAddMachineEx}->fault ) {
-    $self->_fault( $self->{ConfigurationAddMachineEx}->fault );
+    $self->_fault( $self->{ConfigurationAddMachineEx} );
     return $self->{ConfigurationAddMachineEx}->fault;
   } else {
     return $self->{ConfigurationAddMachineEx}->result;
@@ -949,7 +1036,7 @@ sub priv_ConfigurationArchiveEx {
     );
 
   if ( $self->{ConfigurationArchiveEx}->fault ) {
-    $self->_fault( $self->{ConfigurationArchiveEx}->fault );
+    $self->_fault( $self->{ConfigurationArchiveEx} );
     return $self->{ConfigurationArchiveEx}->fault;
   } else {
     return $self->{ConfigurationArchiveEx}->result;
@@ -1009,7 +1096,7 @@ sub priv_ConfigurationCaptureEx {
     );
 
   if ( $self->{ConfigurationCaptureEx}->fault ) {
-    $self->_fault( $self->{ConfigurationCaptureEx}->fault );
+    $self->_fault( $self->{ConfigurationCaptureEx} );
     return $self->{ConfigurationCaptureEx}->fault;
   } else {
     return $self->{ConfigurationCaptureEx}->result;
@@ -1045,7 +1132,7 @@ sub priv_ConfigurationChangeOwner {
     );
 
   if ( $self->{ConfigurationChangeOwner}->fault ) {
-    $self->_fault( $self->{ConfigurationChangeOwner}->fault );
+    $self->_fault( $self->{ConfigurationChangeOwner} );
     return $self->{ConfigurationChangeOwner}->fault;
   } else {
     return $self->{ConfigurationChangeOwner}->result;
@@ -1108,7 +1195,7 @@ sub priv_ConfigurationCopy {
     );
 
   if ( $self->{ConfigurationCopy}->fault ) {
-    $self->_fault( $self->{ConfigurationCopy}->fault );
+    $self->_fault( $self->{ConfigurationCopy} );
     return $self->{ConfigurationCopy}->fault;
   } else {
     return $self->{ConfigurationCopy}->result;
@@ -1190,7 +1277,7 @@ sub priv_ConfigurationCloneToWorkspace {
     );
 
   if ( $self->{ConfigurationCloneToWorkspace}->fault ) {
-    $self->_fault( $self->{ConfigurationCloneToWorkspace}->fault );
+    $self->_fault( $self->{ConfigurationCloneToWorkspace} );
     return $self->{ConfigurationCloneToWorkspace}->fault;
   } else {
     return $self->{ConfigurationCloneToWorkspace}->result;
@@ -1233,7 +1320,7 @@ sub priv_ConfigurationCreateEx {
 	);
 
   if ( $self->{ConfigurationCreateEx}->fault ) {
-    $self->_fault( $self->{ConfigurationCreateEx}->fault );
+    $self->_fault( $self->{ConfigurationCreateEx} );
     return $self->{ConfigurationCreateEx}->fault;
   } else {
     return $self->{ConfigurationCreateEx}->result;
@@ -1292,7 +1379,7 @@ sub priv_ConfigurationDeployEx2 {
       );
 
   if ( $self->{ConfigurationDeployEx2}->fault ) {
-    $self->_fault( $self->{ConfigurationDeployEx2}->fault );
+    $self->_fault( $self->{ConfigurationDeployEx2} );
     return $self->{ConfigurationDeployEx2}->fault;
   } else {
     return $self->{ConfigurationDeployEx2}->result;
@@ -1334,7 +1421,7 @@ sub priv_ConfigurationExport {
 	);
 
   if ( $self->{ConfigurationExport}->fault ) {
-    $self->_fault( $self->{ConfigurationExport}->fault );
+    $self->_fault( $self->{ConfigurationExport} );
     return $self->{ConfigurationExport}->fault;
   } else {
     return $self->{ConfigurationExport}->result;
@@ -1384,10 +1471,77 @@ sub priv_ConfigurationImport {
 	);
 
   if ( $self->{ConfigurationImport}->fault ) {
-    $self->_fault( $self->{ConfigurationImport}->fault );
+    $self->_fault( $self->{ConfigurationImport} );
     return $self->{ConfigurationImport}->fault;
   } else {
     return $self->{ConfigurationImport}->result;
+  }
+}
+
+=head2 priv_ConfigurationMove
+
+=head3 Arguments
+
+=over
+
+=item * configIdToMove
+
+=item * destinationWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * newConfigDescription
+
+=item * storageLeaseInMilliseconds
+
+=item * existingConfigId
+
+=item * vmIds
+
+=item * deleteOriginalConfig
+
+=back
+
+=cut
+
+sub priv_ConfigurationMove {
+  my $self  = shift @_;
+  my $conf  = shift @_;
+  my $dest  = shift @_;
+  my $isnew = shift @_;
+  my $name  = shift @_;
+  my $desc  = shift @_;
+  my $lease = shift @_;
+  my $exist = shift @_;
+  my $vmids = shift @_;
+  my $del   = shift @_;
+  
+  $isnew = 'false' unless $isnew =~ /^true$/i;
+  $del = 'false' unless $del =~ /^true$/i;
+  
+  $self->{ConfigurationMove} = 
+    $self->{soap_priv}->ConfigurationMove(
+      $self->{auth_header},
+	  SOAP::Data->name('configIdToMove'             =>$conf )->type('s:int'),
+	  SOAP::Data->name('destinationWorkspaceId'     =>$dest )->type('s:int'),
+	  SOAP::Data->name('isNewConfiguration'         =>$isnew)->type('s:boolean'),
+	  SOAP::Data->name('newConfigName'              =>$name )->type('s:string'),
+	  SOAP::Data->name('newConfigDescription'       =>$desc )->type('s:string'),
+	  SOAP::Data->name('storageLeaseInMilliseconds' =>$lease)->type('s:long'),
+	  SOAP::Data->name('existingConfigId'           =>$exist)->type('s:int'),
+	  SOAP::Data->name('vmIds'                      => \SOAP::Data->name( 'int', @$vmids ) ),
+	  SOAP::Data->name('deleteOriginalConfig'       =>$del  )->type('s:boolean'),
+	);
+
+# SOAP::Data->name('fenceNetworkOptions' => \SOAP::Data->value( @net_array )->type('tns:ArrayOfFenceNetworkOption')),
+
+  if ( $self->{ConfigurationMove}->fault ) {
+    $self->_fault( $self->{ConfigurationMove} );
+    return $self->{ConfigurationMove}->fault;
+  } else {
+    return $self->{ConfigurationMove}->result;
   }
 }
 
@@ -1412,7 +1566,7 @@ sub priv_GetAllWorkspaces {
   $self->{GetAllWorkspaces} = $self->{soap_priv}->GetAllWorkspaces( $self->{auth_header} );
 
   if ( $self->{GetAllWorkspaces}->fault ) {
-    $self->_fault( $self->{GetAllWorkspaces}->fault );
+    $self->_fault( $self->{GetAllWorkspaces} );
     return $self->{GetAllWorkspaces}->fault;
   }
 
@@ -1448,7 +1602,7 @@ sub priv_GetNetworkInfo {
 	);
 
   if ( $self->{GetNetworkInfo}->fault ) {
-    $self->_fault( $self->{GetNetworkInfo}->fault );
+    $self->_fault( $self->{GetNetworkInfo} );
     return $self->{GetNetworkInfo}->fault;
   } else {
     return $self->{GetNetworkInfo}->result;
@@ -1487,7 +1641,7 @@ sub priv_GetObjectConditions {
 	);
 
   if ( $self->{GetObjectConditions}->fault ) {
-    $self->_fault( $self->{GetObjectConditions}->fault );
+    $self->_fault( $self->{GetObjectConditions} );
     return $self->{GetObjectConditions}->fault;
   } else {
     return $self->{GetObjectConditions}->result;
@@ -1521,7 +1675,7 @@ sub priv_GetOrganization {
 	);
 
   if ( $self->{GetOrganization}->fault ) {
-    $self->_fault( $self->{GetOrganization}->fault );
+    $self->_fault( $self->{GetOrganization} );
     return $self->{GetOrganization}->fault;
   } else {
     return $self->{GetOrganization}->result;
@@ -1549,7 +1703,7 @@ sub priv_GetOrganizations {
   $self->{GetOrganizations} = $self->{soap_priv}->GetOrganizations( $self->{auth_header} );
 
   if ( $self->{GetOrganizations}->fault ) {
-    $self->_fault( $self->{GetOrganizations}->fault );
+    $self->_fault( $self->{GetOrganizations} );
     return $self->{GetOrganizations}->fault;
   }
 
@@ -1585,7 +1739,7 @@ sub priv_GetOrganizationByName {
 	);
 
   if ( $self->{GetOrganizationByName}->fault ) {
-    $self->_fault( $self->{GetOrganizationByName}->fault );
+    $self->_fault( $self->{GetOrganizationByName} );
     return $self->{GetOrganizationByName}->fault;
   } else {
     return $self->{GetOrganizationByName}->result;
@@ -1619,7 +1773,7 @@ sub priv_GetOrganizationWorkspaces {
 	);
 
   if ( $self->{GetOrganizationWorkspaces}->fault ) {
-    $self->_fault( $self->{GetOrganizationWorkspaces}->fault );
+    $self->_fault( $self->{GetOrganizationWorkspaces} );
     return $self->{GetOrganizationWorkspaces}->fault;
   }
 
@@ -1659,7 +1813,7 @@ sub priv_GetTemplate {
 	);
 
   if ( $self->{GetTemplate}->fault ) {
-    $self->_fault( $self->{GetTemplate}->fault );
+    $self->_fault( $self->{GetTemplate} );
     return $self->{GetTemplate}->fault;
   } else {
     return $self->{GetTemplate}->result;
@@ -1693,7 +1847,7 @@ sub priv_GetUser {
 	);
 
   if ( $self->{GetUser}->fault ) {
-    $self->_fault( $self->{GetUser}->fault );
+    $self->_fault( $self->{GetUser} );
     return $self->{GetUser}->fault;
   } else {
     return $self->{GetUser}->result;
@@ -1723,7 +1877,7 @@ sub priv_GetWorkspaceByName {
 	);
 
   if ( $self->{GetWorkspaceByName}->fault ) {
-    $self->_fault( $self->{GetWorkspaceByName}->fault );
+    $self->_fault( $self->{GetWorkspaceByName} );
     return $self->{GetWorkspaceByName}->fault;
   } else {
     return $self->{GetWorkspaceByName}->result;
@@ -1804,7 +1958,7 @@ sub priv_LibraryCloneToWorkspace {
     );
 
   if ( $self->{LibraryCloneToWorkspace}->fault ) {
-    $self->_fault( $self->{LibraryCloneToWorkspace}->fault );
+    $self->_fault( $self->{LibraryCloneToWorkspace} );
     return $self->{LibraryCloneToWorkspace}->fault;
   } else {
     return $self->{LibraryCloneToWorkspace}->result;
@@ -1822,13 +1976,13 @@ sub priv_ListTemplates {
   $self->{ListTemplates} = $self->{soap_priv}->ListTemplates( $self->{auth_header} );
 
   if ( $self->{ListTemplates}->fault ) {
-    $self->_fault( $self->{ListTemplates}->fault );
+    $self->_fault( $self->{ListTemplates} );
     return $self->{ListTemplates}->fault;
   }
 
   my $ret = $self->{ListTemplates}->result;
 
-  my $array = [ $ret ];
+  my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Template} ] if ref $ret and ref $ret->{Template} eq 'HASH';
   $array =   $ret->{Template}   if ref $ret and ref $ret->{Template} eq 'ARRAY';
   
@@ -1847,17 +2001,46 @@ sub priv_ListUsers {
   $self->{ListUsers} = $self->{soap_priv}->ListUsers( $self->{auth_header} );
 
   if ( $self->{ListUsers}->fault ) {
-    $self->_fault( $self->{ListUsers}->fault );
+    $self->_fault( $self->{ListUsers} );
     return $self->{ListUsers}->fault;
   }
 
   my $ret = $self->{ListUsers}->result;
 
-  my $array = [ $ret ];
+  my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{User} ] if ref $ret and ref $ret->{User} eq 'HASH';
   $array =   $ret->{User}   if ref $ret and ref $ret->{User} eq 'ARRAY';
   
   return wantarray ? @$array : $array;
+}
+
+=head2 priv_MachineUpgradeVirtualHardware
+
+=head3 Arguments
+
+=over
+
+=item * machineId - machine id number
+
+=back
+
+=cut
+
+sub priv_MachineUpgradeVirtualHardware {
+  my $self = shift @_;
+  my $id   = shift @_;
+  $self->{MachineUpgradeVirtualHardware} = 
+    $self->{soap_priv}->MachineUpgradeVirtualHardware(
+      $self->{auth_header},
+      SOAP::Data->name('machineId'=>$id)->type('s:int'),
+    );
+
+  if ( $self->{MachineUpgradeVirtualHardware}->fault ) {
+    $self->_fault( $self->{MachineUpgradeVirtualHardware} );
+    return $self->{MachineUpgradeVirtualHardware}->fault;
+  } else {
+    return $self->{MachineUpgradeVirtualHardware}->result;
+  }
 }
 
 =head2 priv_NetworkInterfaceCreate
@@ -1895,7 +2078,7 @@ sub priv_NetworkInterfaceCreate {
 	);
 
   if ( $self->{NetworkInterfaceCreate}->fault ) {
-    $self->_fault( $self->{NetworkInterfaceCreate}->fault );
+    $self->_fault( $self->{NetworkInterfaceCreate} );
     return $self->{NetworkInterfaceCreate}->fault;
   } else {
     return $self->{NetworkInterfaceCreate}->result;
@@ -1927,7 +2110,7 @@ sub priv_NetworkInterfaceDelete {
 	);
 
   if ( $self->{NetworkInterfaceDelete}->fault ) {
-    $self->_fault( $self->{NetworkInterfaceDelete}->fault );
+    $self->_fault( $self->{NetworkInterfaceDelete} );
     return $self->{NetworkInterfaceDelete}->fault;
   } else {
     return $self->{NetworkInterfaceDelete}->result;
@@ -1954,13 +2137,49 @@ sub priv_StorageServerVMFSFindByName {
 					       SOAP::Data->name('name' => $storeName)->type(''));
 
   if ( $self->{StorageServerVMFSFindByName}->fault ) {
-    $self->_fault( $self->{StorageServerVMFSFindByName}->fault );
+    $self->_fault( $self->{StorageServerVMFSFindByName} );
     return $self->{StorageServerVMFSFindByName}->fault;
   } else {
     #return $self->{StorageServerVMFSFindByName}->result;
 	my $result = $self->{StorageServerVMFSFindByName}->result;
 	my $datastore = $$result{"label"}; # Need to be fixed. Currently in use?
 	return $datastore;
+  }
+}
+
+=head2 priv_TemplateChangeOwner
+
+Changes the owner of the given template.
+
+=head3 Arguments
+
+=over
+
+=item * templateId
+
+=item * newOwnerId
+
+=back
+
+=cut
+
+sub priv_TemplateChangeOwner {
+  my $self = shift @_;
+  my $temp = shift @_;
+  my $own  = shift @_;
+
+  $self->{TemplateChangeOwner} = 
+    $self->{soap_priv}->TemplateChangeOwner( 
+      $self->{auth_header}, 
+      SOAP::Data->name('templateId' => $temp )->type('s:int'),
+      SOAP::Data->name('newOwnerId' => $own  )->type('s:int'),
+    );
+
+  if ( $self->{TemplateChangeOwner}->fault ) {
+    $self->_fault( $self->{TemplateChangeOwner} );
+    return $self->{TemplateChangeOwner}->fault;
+  } else {
+    return $self->{TemplateChangeOwner}->result;
   }
 }
 
@@ -2001,7 +2220,7 @@ sub priv_TemplateExport {
 	);
 
   if ( $self->{TemplateExport}->fault ) {
-    $self->_fault( $self->{TemplateExport}->fault );
+    $self->_fault( $self->{TemplateExport} );
     return $self->{TemplateExport}->fault;
   } else {
     return $self->{TemplateExport}->result;
@@ -2080,7 +2299,7 @@ sub priv_TemplateImport {
 	);
 
   if ( $self->{TemplateImport}->fault ) {
-    $self->_fault( $self->{TemplateImport}->fault );
+    $self->_fault( $self->{TemplateImport} );
     return $self->{TemplateImport}->fault;
   } else {
     return $self->{TemplateImport}->result;
@@ -2161,7 +2380,7 @@ sub priv_TemplateImportFromSMB {
 			  ))
 				 );
 
-  $self->_fault( $self->{TemplateImportFromSMB}->fault ) if $self->{TemplateImportFromSMB}->fault;
+  $self->_fault( $self->{TemplateImportFromSMB} ) if $self->{TemplateImportFromSMB}->fault;
   return $self->{TemplateImportFromSMB}->result;
 }
 
@@ -2181,15 +2400,15 @@ In case other people end up here via Google like I did.
 
 These values are listed in the internal API chm if you dig for them:
 
-* 1 for Deploy
-* 2 for Undeploy in Discard State
-* 3 for Delete
-* 4 for Reset
-* 5 for Make Shared
-* 6 for Make Private
-* 7 for Publish
-* 8 for Unpublish
-* 9 for Undeploy in Save State
+  * 1 for Deploy
+  * 2 for Undeploy in Discard State
+  * 3 for Delete
+  * 4 for Reset
+  * 5 for Make Shared
+  * 6 for Make Private
+  * 7 for Publish
+  * 8 for Unpublish
+  * 9 for Undeploy in Save State
 
 =back
 
@@ -2206,7 +2425,7 @@ sub priv_TemplatePerformAction {
                 SOAP::Data->name('action'          => $action      )->type('s:int') );
  
    if ($self->{TemplatePerformAction}->fault) {
-     $self->_fault( $self->{TemplatePerformAction}->fault );
+     $self->_fault( $self->{TemplatePerformAction} );
      return $self->{TemplatePerformAction}->fault;
    }
  
@@ -2249,13 +2468,15 @@ sub priv_WorkspaceCreate {
 	SOAP::Data->name('storedVMQuota'   => $storedquota )->type('s:int'),
 	SOAP::Data->name('deployedVMQuota' => $deployquota )->type('s:int') );
 
-  $self->_fault( $self->{WorkspaceCreate}->fault ) if $self->{WorkspaceCreate}->fault;
+  $self->_fault( $self->{WorkspaceCreate} ) if $self->{WorkspaceCreate}->fault;
   return $self->{WorkspaceCreate}->result;
 }
 
 1;
 
 __END__
+
+=head1 EXAMPLES
 
 =head1 BUGS AND LIMITATIONS
 
@@ -2265,7 +2486,10 @@ The API is designed by VMware to require an authentication header with every
 SOAP action. This means that you are re-autneticated on each action you perform.
 As stated in the VMware Lab Manager SOAP API Guide v2.4, pg 13:
 
-  Client applications must provide valid credentials—a Lab Manager user account and password—with each Lab Manager Web service method call. The user account must have Administrator privileges on the Lab Manager Server. The Lab Manager Server authenticates these credentials.
+  Client applications must provide valid credentials - a Lab Manager user account
+  and password - with each Lab Manager Web service method call. The user account 
+  must have Administrator privileges on the Lab Manager Server. The Lab Manager 
+  Server authenticates these credentials.
 
 If your Lab Manager is configured for remote authentication and is slow to log-in,
 this means you will see a performance drop in the speed of this API. Every method 
@@ -2342,7 +2566,7 @@ and I'd check that first for resolution.
 
 =head1 VERSION
 
-  Version: v1.5 (2010/08/19)
+  Version: v1.6 (2010/08/23)
 
 =head1 AUTHOR
 
