@@ -10,7 +10,7 @@ VMware::API::LabManager - The VMware LabManager API
 
 =cut
 
-our $VERSION = '1.6';
+our $VERSION = '1.7';
 
 =head1 SYNOPSIS
 
@@ -64,7 +64,7 @@ or  module as a "wrapper" for the Labmanager API.
 
 This method creates the Labmanager object.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -252,7 +252,7 @@ This methods provide a direct mapping to the public API calls for Labmanager.
 
 This method captures a Workspace configuration and saves into the library.  
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -262,7 +262,7 @@ This method captures a Workspace configuration and saves into the library.
 
 =back
 
-=head3 Returns
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -304,7 +304,7 @@ This is because there are multiple workspaces named "Main", in different organiz
 
 A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -340,7 +340,7 @@ sub ConfigurationCheckout {
 
 This method clones a Workspace configuration, saves it in a storage server, and makes it visible in the Workspace under the new name. Arguements:
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -374,7 +374,7 @@ sub ConfigurationClone {
 
 This method deletes a configuration from the Workspace. You cannot delete a deployed configuration. Doesn't return anything. Arguments:
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -407,7 +407,7 @@ sub ConfigurationDelete {
 
 This method allows you to deploy an undeployed configuration which resides in the Workspace.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -458,7 +458,7 @@ This method performs one of the following configuration actions as indicated by 
 
 =back
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -492,7 +492,7 @@ sub ConfigurationPerformAction {
 
 Use this call to set the state of a configuration to public” or private.” If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -527,7 +527,7 @@ sub ConfigurationSetPublicPrivate {
 
 Undeploys a configuration in the Workspace. Nothing is returned.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -557,7 +557,7 @@ sub ConfigurationUndeploy {
 
 This method retruns a reference to a Configuration matching the configuration ID passed.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -565,7 +565,7 @@ This method retruns a reference to a Configuration matching the configuration ID
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A hashref to a configuration. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
 name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
@@ -591,11 +591,55 @@ sub GetConfiguration {
   }
 }
 
+=head2 GetConfigurationByName
+
+This method retruns a reference to a Configuration matching the configuration ID passed.
+
+B<Arguments>
+
+=over
+
+=item * Config Name
+
+=back
+
+B<Returns>
+
+An array of configurations matching this name. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
+name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
+dateCreated
+
+=cut
+
+sub GetConfigurationByName {
+  my $self = shift @_;
+  my $name = shift @_;
+		
+  $self->{GetConfigurationByName} = 
+    $self->{soap}->GetConfigurationByName(
+      $self->{auth_header}, 
+      SOAP::Data->name( name => $name )->type('s:string')
+    );
+
+  if ( $self->{GetConfigurationByName}->fault ) {
+    $self->_fault( $self->{GetConfigurationByName} );
+    return $self->{GetConfigurationByName}->fault;
+  }
+
+  my $ret = $self->{GetConfigurationByName}->result;
+
+  my $array = $ret ? [ $ret ] : [ ];
+  $array = [ $ret->{Configuration} ] if ref $ret and ref $ret->{Configuration} eq 'HASH';
+  $array =   $ret->{Configuration}   if ref $ret and ref $ret->{Configuration} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
+
 =head2 GetMachine
 
 This call takes the numeric identifier of a machine and returns its corresponding Machine object.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -603,7 +647,7 @@ This call takes the numeric identifier of a machine and returns its correspondin
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
 name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
@@ -632,7 +676,7 @@ sub GetMachine {
 
 This call takes a configuration identifier and a machine name and returns the matching Machine object.
 
-=head3 Arguments
+B<Arguments>
 
 =over
  
@@ -642,7 +686,7 @@ This call takes a configuration identifier and a machine name and returns the ma
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
 name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
@@ -674,7 +718,7 @@ sub GetMachineByName
 
 This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -682,7 +726,7 @@ This call takes a configuration name, searches for it in both the configuration 
 
 =back
 
-=head3 Returns
+B<Returns>
 
 A hashref to a configuration. Example elements: mustBeFenced, autoDeleteDateTime,
 bucketName (aka workspace), name, autoDeleteInMilliSeconds, description, isDeployed,
@@ -713,7 +757,7 @@ workspace or library.
 
 It depends on configuration type requested.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -754,7 +798,7 @@ sub ListConfigurations {
 
 This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -814,7 +858,7 @@ sub GetConsoleAccessInfo
 
 This method allows you to create a LiveLink URL to a library configuration. Responds with a livelink URL
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -876,7 +920,7 @@ This method performs one of the following machine actions as indicated by the ac
 
 =back
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -916,7 +960,7 @@ releases of the Labmanager product.
 
 =head2 priv_ConfigurationAddMachineEx
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -989,7 +1033,7 @@ sub priv_ConfigurationAddMachineEx {
 
 This method captures a Workspace configuration and saves into the library.  
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1007,7 +1051,7 @@ This method captures a Workspace configuration and saves into the library.
 
 =back
 
-=head3 Returns
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -1047,7 +1091,7 @@ sub priv_ConfigurationArchiveEx {
 
 This method captures a Workspace configuration and saves into the library.  
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1065,7 +1109,7 @@ This method captures a Workspace configuration and saves into the library.
 
 =back
 
-=head3 Returns
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -1107,7 +1151,7 @@ sub priv_ConfigurationCaptureEx {
 
 Changes the owner of the given config.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1143,7 +1187,7 @@ sub priv_ConfigurationChangeOwner {
 
 This method copys a configuration to a new datastore. (Full clone)
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1206,7 +1250,7 @@ sub priv_ConfigurationCopy {
 
 This method copys a configuration to a new datastore. (Full clone)
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1289,7 +1333,7 @@ sub priv_ConfigurationCloneToWorkspace {
 
 Creates and empty configuration.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1299,7 +1343,7 @@ Creates and empty configuration.
 
 =back
 
-=head3 Returns
+B<Returns>
 
 ID of the configuration on success.
 
@@ -1331,7 +1375,7 @@ sub priv_ConfigurationCreateEx {
 
 This method allows you to deploy an undeployed configuration which resides in the Workspace to a Distributed Virtual Switch. Arguments:
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1388,7 +1432,7 @@ sub priv_ConfigurationDeployEx2 {
 
 =head2 priv_ConfigurationExport
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1428,9 +1472,57 @@ sub priv_ConfigurationExport {
   }
 }
 
+=head2 priv_ConfigurationGetNetworks
+
+Returns an array of physical or virtual network IDs for the specified configuration.
+
+B<Arguments>
+
+=over 4
+
+=item * configID
+
+=item * physical - true/false
+
+=back
+
+This method returns an array of type Network.
+
+=cut
+
+sub priv_ConfigurationGetNetworks {
+  my $self = shift @_;
+  my $conf = shift @_;
+  my $phys = shift @_;
+
+  $phys = 'false' unless $phys =~ /^true$/i;
+
+  $self->{ConfigurationGetNetworks} = 
+    $self->{soap_priv}->ConfigurationGetNetworks(
+      $self->{auth_header}, 
+	  SOAP::Data->name('configID'=>$conf)->type('s:int'),
+	  SOAP::Data->name('physical'=>$phys)->type('s:boolean'),
+    );
+
+  if ( $self->{ConfigurationGetNetworks}->fault ) {
+    $self->_fault( $self->{ConfigurationGetNetworks} );
+    return $self->{ConfigurationGetNetworks}->fault;
+  }
+
+  my $ret = $self->{ConfigurationGetNetworks}->result;
+
+  return $ret;
+
+  #my $array = $ret ? [ $ret ] : [ ];
+  #$array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
+  #$array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
+  
+  #return wantarray ? @$array : $array;
+}
+
 =head2 priv_ConfigurationImport
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1480,7 +1572,7 @@ sub priv_ConfigurationImport {
 
 =head2 priv_ConfigurationMove
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1519,24 +1611,28 @@ sub priv_ConfigurationMove {
   my $del   = shift @_;
   
   $isnew = 'false' unless $isnew =~ /^true$/i;
-  $del = 'false' unless $del =~ /^true$/i;
+  $del   = 'false' unless $del   =~ /^true$/i;
+
+  my $vmids_xml = SOAP::Data->name('vmIds');
+  $vmids_xml = SOAP::Data->name( vmIds => \SOAP::Data->name('int', @$vmids ))
+    if ref $vmids;
+
+  my @optional;
+  push @optional, SOAP::Data->name('existingConfigId'           =>$exist)->type('s:int')     if $exist;
+  push @optional, SOAP::Data->name('newConfigName'              =>$name )->type('s:string')  if $name;
+  push @optional, SOAP::Data->name('newConfigDescription'       =>$desc )->type('s:string')  if $desc;
+  push @optional, SOAP::Data->name('storageLeaseInMilliseconds' =>$lease)->type('s:long')    if $lease;
+  push @optional, SOAP::Data->name('deleteOriginalConfig'       =>$del  )->type('s:boolean') if $del;
   
   $self->{ConfigurationMove} = 
     $self->{soap_priv}->ConfigurationMove(
       $self->{auth_header},
-	  SOAP::Data->name('configIdToMove'             =>$conf )->type('s:int'),
-	  SOAP::Data->name('destinationWorkspaceId'     =>$dest )->type('s:int'),
-	  SOAP::Data->name('isNewConfiguration'         =>$isnew)->type('s:boolean'),
-	  SOAP::Data->name('newConfigName'              =>$name )->type('s:string'),
-	  SOAP::Data->name('newConfigDescription'       =>$desc )->type('s:string'),
-	  SOAP::Data->name('storageLeaseInMilliseconds' =>$lease)->type('s:long'),
-	  SOAP::Data->name('existingConfigId'           =>$exist)->type('s:int'),
-	  SOAP::Data->name('vmIds'                      => \SOAP::Data->name( 'int', @$vmids ) ),
-	  SOAP::Data->name('deleteOriginalConfig'       =>$del  )->type('s:boolean'),
+	  SOAP::Data->name('configIdToMove'         =>$conf )->type('s:int'),
+	  SOAP::Data->name('destinationWorkspaceId' =>$dest )->type('s:int'),
+	  SOAP::Data->name('isNewConfiguration'     =>$isnew)->type('s:boolean'),
+      @optional, $vmids_xml
 	);
-
-# SOAP::Data->name('fenceNetworkOptions' => \SOAP::Data->value( @net_array )->type('tns:ArrayOfFenceNetworkOption')),
-
+	
   if ( $self->{ConfigurationMove}->fault ) {
     $self->_fault( $self->{ConfigurationMove} );
     return $self->{ConfigurationMove}->fault;
@@ -1547,7 +1643,7 @@ sub priv_ConfigurationMove {
 
 =head2 priv_GetAllWorkspaces
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1555,7 +1651,7 @@ sub priv_ConfigurationMove {
 
 =back
 
-=head3 Arguments
+B<Arguments>
 
 Returns an array of workspace objects.
 
@@ -1581,13 +1677,19 @@ sub priv_GetAllWorkspaces {
 
 =head2 priv_GetNetworkInfo
 
-=head3 Arguments
+Returns the Network information for a specific VM.
+
+B<Arguments>
 
 =over
 
 =item * vmID - VM id number
 
 =back
+
+B<Returns>
+
+An array of Network references.
 
 =cut
 
@@ -1604,14 +1706,20 @@ sub priv_GetNetworkInfo {
   if ( $self->{GetNetworkInfo}->fault ) {
     $self->_fault( $self->{GetNetworkInfo} );
     return $self->{GetNetworkInfo}->fault;
-  } else {
-    return $self->{GetNetworkInfo}->result;
   }
+   
+  my $ret = $self->{GetNetworkInfo}->result;
+
+  my $array = [];
+  $array = [ $ret->{NetInfo} ] if ref $ret and ref $ret->{NetInfo} eq 'HASH';
+  $array =   $ret->{NetInfo}   if ref $ret and ref $ret->{NetInfo} eq 'ARRAY';
+
+  return wantarray ? @$array : $array;
 }
 
 =head2 priv_GetObjectConditions
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1650,7 +1758,7 @@ sub priv_GetObjectConditions {
 
 =head2 priv_GetOrganization
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1658,7 +1766,7 @@ sub priv_GetObjectConditions {
 
 =back
 
-=head3 Returns
+B<Returns>
 
 Organization object
 
@@ -1684,7 +1792,7 @@ sub priv_GetOrganization {
 
 =head2 priv_GetOrganizations
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1692,7 +1800,7 @@ sub priv_GetOrganization {
 
 =back
 
-=head3 Arguments
+B<Arguments>
 
 Returns an array of organization refs.
 
@@ -1718,7 +1826,7 @@ sub priv_GetOrganizations {
 
 =head2 priv_GetOrganizationByName
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1748,7 +1856,7 @@ sub priv_GetOrganizationByName {
 
 =head2 priv_GetOrganizationWorkspaces
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1756,7 +1864,7 @@ sub priv_GetOrganizationByName {
 
 =back
 
-=head3 Returns
+B<Returns>
 
 An array of Workspace objects that are in the given organizations.
 
@@ -1788,7 +1896,7 @@ sub priv_GetOrganizationWorkspaces {
 
 =head2 priv_GetTemplate
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1796,7 +1904,7 @@ sub priv_GetOrganizationWorkspaces {
 
 =back
 
-=head3 Returns
+B<Returns>
 
 Template object.
 
@@ -1822,7 +1930,7 @@ sub priv_GetTemplate {
 
 =head2 priv_GetUser
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1830,7 +1938,7 @@ sub priv_GetTemplate {
 
 =back
 
-=head3 Returns
+B<Returns>
 
 User object.
 
@@ -1856,7 +1964,7 @@ sub priv_GetUser {
 
 =head2 priv_GetWorkspaceByName
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -1965,6 +2073,30 @@ sub priv_LibraryCloneToWorkspace {
   }
 }
 
+=head2 priv_ListNetworks
+
+This method returns an array of type Network. The method returns one Network object for each network configured.
+
+=cut
+
+sub priv_ListNetworks {
+  my $self = shift @_;
+  $self->{ListNetworks} = $self->{soap_priv}->ListNetworks( $self->{auth_header} );
+
+  if ( $self->{ListNetworks}->fault ) {
+    $self->_fault( $self->{ListNetworks} );
+    return $self->{ListNetworks}->fault;
+  }
+
+  my $ret = $self->{ListNetworks}->result;
+
+  my $array = $ret ? [ $ret ] : [ ];
+  $array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
+  $array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
+  
+  return wantarray ? @$array : $array;
+}
+
 =head2 priv_ListTemplates
 
 This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
@@ -1987,6 +2119,32 @@ sub priv_ListTemplates {
   $array =   $ret->{Template}   if ref $ret and ref $ret->{Template} eq 'ARRAY';
   
   return wantarray ? @$array : $array;
+}
+
+=head2 priv_ListTransportNetworksInCurrentOrg
+
+This method returns an array of type TransportNetwork. The method returns one Network object for each network configured.
+
+=cut
+
+sub priv_ListTransportNetworksInCurrentOrg {
+  my $self = shift @_;
+  $self->{ListTransportNetworksInCurrentOrg} = $self->{soap_priv}->ListTransportNetworksInCurrentOrg( $self->{auth_header} );
+
+  if ( $self->{ListTransportNetworksInCurrentOrg}->fault ) {
+    $self->_fault( $self->{ListTransportNetworksInCurrentOrg} );
+    return $self->{ListTransportNetworksInCurrentOrg}->fault;
+  }
+
+  return $self->{ListTransportNetworksInCurrentOrg}->result;
+
+  #my $ret = $self->{ListTransportNetworksInCurrentOrg}->result;
+
+  #my $array = $ret ? [ $ret ] : [ ];
+  #$array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
+  #$array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
+  
+  #return wantarray ? @$array : $array;
 }
 
 =head2 priv_ListUsers
@@ -2016,7 +2174,7 @@ sub priv_ListUsers {
 
 =head2 priv_MachineUpgradeVirtualHardware
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2045,7 +2203,7 @@ sub priv_MachineUpgradeVirtualHardware {
 
 =head2 priv_NetworkInterfaceCreate
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2117,6 +2275,43 @@ sub priv_NetworkInterfaceDelete {
   }
 }
 
+=head2 priv_NetworkInterfaceModify
+
+B<Arguments>
+
+=over
+
+=item * vmID - VM id number
+
+=item * info -
+
+=back
+
+=cut
+
+sub priv_NetworkInterfaceModify { ### INCOMPLETE
+  my $self   = shift @_;
+  my $vmid   = shift @_;
+  my $netid  = shift @_;
+  my $info   = shift @_;
+
+  $self->{NetworkInterfaceModify} = 
+    $self->{soap_priv}->NetworkInterfaceModify(
+      $self->{auth_header}, 
+	  #SOAP::Data->name('vmID'             =>$vmid   )->type('s:int'),
+	  #SOAP::Data->name('networkID'        =>$netid  )->type('s:int'),
+	  #SOAP::Data->name('IPAssignmentType' =>$iptype )->type('s:string'),
+	  #SOAP::Data->name('IPAddress'        =>$ipaddr )->type('s:string'),
+	);
+
+  if ( $self->{NetworkInterfaceModify}->fault ) {
+    $self->_fault( $self->{NetworkInterfaceModify} );
+    return $self->{NetworkInterfaceModify}->fault;
+  } else {
+    return $self->{NetworkInterfaceModify}->result;
+  }
+}
+
 =head2 priv_StorageServerVMFSFindByName
 
 =over
@@ -2151,7 +2346,7 @@ sub priv_StorageServerVMFSFindByName {
 
 Changes the owner of the given template.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2187,7 +2382,7 @@ sub priv_TemplateChangeOwner {
 
 Exports a template out to a UNC path for later import.
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2229,7 +2424,7 @@ sub priv_TemplateExport {
 
 =head2 priv_TemplateImport
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2308,7 +2503,7 @@ sub priv_TemplateImport {
 
 =head2 priv_TemplateImportFromSMB
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2386,7 +2581,7 @@ sub priv_TemplateImportFromSMB {
 
 =head2 priv_TemplatePerformAction
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2434,7 +2629,7 @@ sub priv_TemplatePerformAction {
 
 =head2 priv_WorkspaceCreate
 
-=head3 Arguments
+B<Arguments>
 
 =over
 
@@ -2559,14 +2754,38 @@ document.)
 
 This lovely gem usually pops up when a required parameter is missing in a 
 given SOAP call. This probably reflects a typo or capitalization error in the
-underlying wrapper call. Let me know if you figure out what is up. As is 
-referenced in the BUGS AND LIMITATIONS section, the documentation for the API
-is incorrect in some places. The WSDL on the server is considered authorative
-and I'd check that first for resolution.
+underlying wrapper call. IE: A mistake that I made. Let me know if you figure 
+out what is up. As is referenced in the BUGS AND LIMITATIONS section, the 
+documentation for the API is incorrect in some places. The WSDL on the server 
+is considered authorative and I'd check that first for resolution.
+
+=head1 WISH LIST
+
+If someone from VMware is reading this, and has control of the API, I would
+dearly love a few changes, that might help things:
+
+* A way to submit multiple actions, or to cache credentials for speed. See
+"Authentication and latentcy" under the BUGS section.
+
+* The template object should reference "owner" and not "ownerFullName." All 
+ownership in the rest of the API is associated with the username, which is 
+unique. To figure out who owns a template you have to crosswalk the name 
+backwards and the full name is not guarenteed unique.
+
+* The template object should list the organization it is based in. Short of 
+doing a list of all templates in each organization and diffing them, there is 
+no quick way to determine if a template belongs only to this group, or is 
+global and shared.
+
+* Consistent naming and capitalization.
+
+* A way to look at the underlying ID numbers for items in the Lab Manager UI.
+
+* A way to look up a VM's vsphere name.
 
 =head1 VERSION
 
-  Version: v1.6 (2010/08/23)
+  Version: v1.7 (2010/09/01)
 
 =head1 AUTHOR
 

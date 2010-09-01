@@ -1,5 +1,20 @@
 Revision history for VMware::API::LabManager
 
+1.7  2010/09/01
+
+  Added "WISH LIST" to the POD.
+
+  Added:
+    GetConfigurationByName()
+    priv_ConfigurationGetNetworks()
+    priv_ListNetworks()
+    priv_ListTransportNetworksInCurrentOrg()
+    priv_NetworkInterfaceModify()
+    
+  Improved:
+    priv_ConfigurationMove() - Proper handling of optional parameters and empty VMid array condition.
+    priv_GetNetworkInfo() - Set to return an array result like the List*() methods.
+
 1.6  2010/08/23
 
   Removed errant unicode emdashes from the POD.
@@ -10,9 +25,9 @@ Revision history for VMware::API::LabManager
     priv_TemplateChangeOwner()
 
   Improved:
-    ListConfigurations() - empty result set condition.
-    priv_ListTemplates() - empty result set condition.
-    priv_ListUsers() - empty result set condition.
+    ListConfigurations() - handling of empty result set condition.
+    priv_ListTemplates() - handling of empty result set condition.
+    priv_ListUsers() - handling of empty result set condition.
 
 1.5  2010/08/19
 
