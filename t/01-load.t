@@ -10,7 +10,7 @@ ok(1);
 # Test loading the module
 
 my $labman = new VMware::API::LabManager (
-  qw/username password localhost orgname workspace 0 0/
+  qw/username password localhost orgname workspace/
 );
 
 ok(defined $labman);

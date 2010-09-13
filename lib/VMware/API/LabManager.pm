@@ -4,83 +4,9 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-=head1 NAME
+our $VERSION = '1.8';
 
-VMware::API::LabManager - The VMware LabManager API
-
-=cut
-
-our $VERSION = '1.7';
-
-=head1 SYNOPSIS
-
-This module has been developed against VMware vCenter Lab Manager 4.0 (4.0.1.1233)
-
-Code to checkout, deploy, undeploy and delete a configuration:
-
- 	use VMware::API::LabManager;
-
-    my $labman = new VMware::LabManager ( $username, $password, $server, $orgname, $workspace );
-
- 	# Get the id of the config you are going to check out 
- 	my $config = $labman->GetSingleConfigurationByName("myConfigName");
-
- 	# Checkout the config
- 	my $checked_out_config_id  = $labman->ConfigurationCheckout($lib_config_id[0],"NEW_WORKSPACE_NAME");
-
- 	# Deploy the config
- 	my $ret = $labman->ConfigurationDeploy($checked_out_config_id,4); # The 4 is for the fencemode
-
- 	# Undeploy the config
- 	my $ret = $labman->ConfigurationUndeploy($chkd_out_id);
-
- 	# Delete the config
- 	my $ret = $labman->ConfigurationDelete($chkd_out_id); # You really should be sure before doing this :)
-
-	# Check for last SOAP error
-    print $labman->getLastSOAPError();
-
-=head1 DESCRIPTION
-
-This module provides a Perl interface to VMWare's Labmanager SOAP interface. It 
-has a one-to-one mapping for most of the commands exposed in the external API as 
-well as a few commands exposed in the internal API. The most useful Internal API 
-command is ConfigurationDeployEx2 which allows you to deploy to distributed 
-virtual switches.  
-
-Using this module you can checkout, deploy, undeploy and delete configurations. 
-You can also get lists of configurations and guest information as well.
-
-Lab Manager is a product created by VMWare that provides development and test 
-teams with a virtual environment to deploy systems and networks of systems in a 
-short period of a time. 
-
-=head1 PERL MODULE METHODS
-
-These methods are not direct API calls. They represent the methods that create
-or  module as a "wrapper" for the Labmanager API.
-
-=head2 new
-
-This method creates the Labmanager object.
-
-B<Arguments>
-
-=over
-
-=item * username
-
-=item * password
-
-=item * hostname
-
-=item * organization
-
-=item * workspace
-
-=back
-
-=cut
+### External methods
 
 sub new {
   my $class = shift @_;
@@ -118,24 +44,6 @@ sub new {
   return $self;
 }
 
-=head3 config
-
-  $labman->config( debug => 1 );
-
-=over 4
-
-=item debug - 1 to turn on debugging. 0 for none. Defaults to 0.
-
-=item die_on_fault - 1 to cause the program to die verbosely on a soap fault. 0 for the fault object to be returned on the call and for die() to not be called. Defaults to 1. If you choose not to die_on_fault (for example, if you are writing a CGI) you will want to check all return objects to see if they are fault objects or not.
-
-=item ssl_timeout - seconds to wait for timeout. Defaults to 3600. (1hr) This is how long a transaction response will be waited for once submitted. For slow storage systems and full clones, you may want to up this higher. If you find yourself setting this to more than 6 hours, your Lab Manager setup is probably not in the best shape.
-
-=item hostname, orgname, workspace, username and password - All of these values can be changed from the original settings on new(). This is handing for performing multiple transactions across organizations.
-
-=back
-
-=cut
-
 sub config {
   my $self = shift @_;
 
@@ -160,21 +68,16 @@ sub config {
   return wantarray ? %out : \%out;
 }
 
-=head3 getLastSOAPError
-
-Returns last error reported by SOAP service.
-
-=cut
-
-sub getLastSOAPError {
+sub getLastSOAPError {  
   my $self = shift @_;
+  my $error_summary;
   if ( $self->{LASTERROR} and $self->{LASTERROR}->{data} ) {
-		return join(': ', 'LabManager SOAP error', 
-			$self->{LASTERROR}->{data}->faultcode, 
-			$self->{LASTERROR}->{data}->faultstring, 
-			$self->{LASTERROR}->{data}->faultdetail
-		) . "\n";
+    $error_summary = "\n\nERROR: $self->{LASTERROR}->{text}\n";
+    $error_summary .= "\n\nSUBMITTED XML: $self->{LASTERROR}->{xml} \n" if $self->{LASTERROR}->{xml};
+    $error_summary .= "\n\nERROR DEBUG: " . Dumper($self->{LASTERROR}->{data}) if $self->{debug};
+    $self->{LASTERROR} = {};
   }
+  return $error_summary;
 }
 
 ### Internal methods
@@ -211,13 +114,16 @@ sub _fault {
   $xml = $soapobj->{_context}->{_transport}->{_proxy}->{_http_response}->{_request}->{_content}
     if ref $soapobj;
 
+  warn "\n\nERROR DETAILS:\n" . Dumper($data) if $self->{debug};
+  warn "\n\nSUBMITTED XML:\n" . $xml if $xml; #if $self->{debug} and $xml;
+
   if ( $self->{die_on_fault} ) {
-    warn "\n\nERROR DETAILS:\n" . Dumper($data) if $self->{debug};
-    warn "\n\nSUBMITTED XML:\n" . $xml if $xml; #if $self->{debug} and $xml;
     die "\n\nERROR: $text\n";
   } else {
     $self->{LASTERROR}->{data} = $data;
-    $self->{LASTERROR}->{text} = $text;
+    $self->{LASTERROR}->{text} = $text;    
+    $self->{LASTERROR}->{xml}  = $xml;
+    warn "\n\nERROR: $text\n";
   }
 }
 
@@ -244,29 +150,7 @@ sub _regenerate {
   );
 }
 
-=head1 PUBLIC API METHODS
-
-This methods provide a direct mapping to the public API calls for Labmanager.
-
-=head2 ConfigurationCapture
-
-This method captures a Workspace configuration and saves into the library.  
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * New library name - The name that you want the captured config to be.
-
-=back
-
-B<Returns>
-
-ID on success. Fault object on fault.
-
-=cut
+### Public API methods
 
 sub ConfigurationCapture {
   my $self       = shift @_;
@@ -288,34 +172,6 @@ sub ConfigurationCapture {
   }
 }
 
-=head2 ConfigurationCheckout
-
-This method checks out a configuration from the configuration library and moves it to the Workspace under a different name. It returns the ID of the checked out configuration in the WorkSpace.
-
-WARNING: If you get the following SOAP Error: 
-
-=over 4
-
-Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main' ---> Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main'
-
-=back
-
-This is because there are multiple workspaces named "Main", in different organizations. Apparently this API call doesn't limit the check for workspace name against the organization you authenticated with.
-
-A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * New workspace name - The name you want the new config in the workspace to be.
-
-=back
-
-=cut
-
 sub ConfigurationCheckout {
   my $self       = shift @_;
   my $configID   = shift @_;
@@ -336,22 +192,6 @@ sub ConfigurationCheckout {
   }
 }
 
-=head2 ConfigurationClone
-
-This method clones a Workspace configuration, saves it in a storage server, and makes it visible in the Workspace under the new name. Arguements:
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * New workspace name - The name of the clone that is being created.
-
-=back
-
-=cut
-
 sub ConfigurationClone {
   my $self = shift @_;
   my $configID = shift @_;
@@ -370,21 +210,6 @@ sub ConfigurationClone {
   }
 }
 
-=head2 ConfigurationDelete
-
-This method deletes a configuration from the Workspace. You cannot delete a deployed configuration. Doesn't return anything. Arguments:
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=back
-
-=cut
-
-
 sub ConfigurationDelete {
   my $self = shift @_;
   my $configID = shift @_;
@@ -401,23 +226,6 @@ sub ConfigurationDelete {
     return $self->{ConfigurationDelete}->result;
   }
 }
-
-
-=head2 ConfigurationDeploy
-
-This method allows you to deploy an undeployed configuration which resides in the Workspace.
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * Fencemode - 1 = not fenced; 2 = block traffic in and out; 3 = allow out ; 4 allow in and out
-
-=back
-
-=cut
 
 sub ConfigurationDeploy {
   my $self      = shift @_;
@@ -438,38 +246,6 @@ sub ConfigurationDeploy {
   }
 }
 
-=head2 ConfigurationPerformAction
-
-This method performs one of the following configuration actions as indicated by the action identifier:
-
-=over
-
-=item	1 Power On. Turns on a configuration.
-
-=item	2 Power Off. Turns off a configuration. Nothing is saved.
-
-=item	3 Suspend. Freezes the CPU and state of a configuration.
-
-=item	4 Resume. Resumes a suspended configuration.
-
-=item	5 Reset. Reboots a configuration.
-
-=item	6 Snapshot. Saves a configuration state at a specific point in time.
-
-=back
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * Action - use a numerical value from the list above.
-
-=back
-
-=cut
-
 sub ConfigurationPerformAction {
   my $self     = shift @_;
   my $configID = shift @_;
@@ -487,22 +263,6 @@ sub ConfigurationPerformAction {
     return $self->{ConfigurationPerformAction}->result;
   }
 }
-
-=head2 ConfigurationSetPublicPrivate
-
-Use this call to set the state of a configuration to public” or private.” If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * True or False (boolean) - Accepts true | false | 1 | 0
-
-=back
-
-=cut
 
 sub ConfigurationSetPublicPrivate {
   my $self = shift @_;
@@ -523,20 +283,6 @@ sub ConfigurationSetPublicPrivate {
   }
 }
 
-=head2 ConfigurationUndeploy
-
-Undeploys a configuration in the Workspace. Nothing is returned.
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=back
-
-=cut
-
 sub ConfigurationUndeploy {
   my $self = shift @_;
   my $configID = shift @_;
@@ -552,26 +298,6 @@ sub ConfigurationUndeploy {
     return $self->{ConfigurationUndeploy}->result;
   }
 }
-
-=head2 GetConfiguration
-
-This method retruns a reference to a Configuration matching the configuration ID passed.
-
-B<Arguments>
-
-=over
-
-=item * Config ID
-
-=back
-
-B<Returns>
-
-A hashref to a configuration. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
-name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
-dateCreated
-
-=cut
 
 sub GetConfiguration {
   my $self = shift @_;
@@ -590,26 +316,6 @@ sub GetConfiguration {
     return $self->{GetConfiguration}->result;
   }
 }
-
-=head2 GetConfigurationByName
-
-This method retruns a reference to a Configuration matching the configuration ID passed.
-
-B<Arguments>
-
-=over
-
-=item * Config Name
-
-=back
-
-B<Returns>
-
-An array of configurations matching this name. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
-name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
-dateCreated
-
-=cut
 
 sub GetConfigurationByName {
   my $self = shift @_;
@@ -635,25 +341,6 @@ sub GetConfigurationByName {
   return wantarray ? @$array : $array;
 }
 
-=head2 GetMachine
-
-This call takes the numeric identifier of a machine and returns its corresponding Machine object.
-
-B<Arguments>
-
-=over
-
-=item * Machine ID - Use GetMachineByName to retrieve this
-
-=back
-
-B<Returns>
-
-A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
-name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
-
-=cut
-
 sub GetMachine {
   my $self = shift @_;
   my $id   = shift @_;
@@ -672,39 +359,15 @@ sub GetMachine {
   }
 }
 
-=head2 GetMachineByName
-
-This call takes a configuration identifier and a machine name and returns the matching Machine object.
-
-B<Arguments>
-
-=over
- 
-=item * Configuration ID - Config where Guest VM lives
-
-=item * Name of guest
-
-=back
-
-B<Returns>
-
-A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
-name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
-
-=cut
-
-sub GetMachineByName
-{
-	my($self) = shift @_;
-	my($config) = shift @_;
-	my($name) = shift @_;
-	push(my(@attribs), @_);
-	my @myattribs;
+sub GetMachineByName {
+  my $self   = shift @_;
+  my $config = shift @_;
+  my $name   = shift @_;
 		
-	$self->{GetMachineByName} = 
-		$self->{soap}->GetMachineByName( $self->{auth_header}, 
-		SOAP::Data->name('configurationId' => $config)->type('s:int'),
-		SOAP::Data->name('name' => $name)->type('s:string'));
+  $self->{GetMachineByName} = 
+    $self->{soap}->GetMachineByName( $self->{auth_header}, 
+    SOAP::Data->name('configurationId' => $config)->type('s:int'),
+    SOAP::Data->name('name' => $name)->type('s:string'));
 
   if ( $self->{GetMachineByName}->fault ) {
     $self->_fault( $self->{GetMachineByName} );
@@ -713,26 +376,6 @@ sub GetMachineByName
     return $self->{GetMachineByName}->result;
   }
 }
-
-=head2 GetSingleConfigurationByName
-
-This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object.
-
-B<Arguments>
-
-=over
-
-=item * Configuration name 
-
-=back
-
-B<Returns>
-
-A hashref to a configuration. Example elements: mustBeFenced, autoDeleteDateTime,
-bucketName (aka workspace), name, autoDeleteInMilliSeconds, description, isDeployed,
-fenceMode, id, type, isPublic, dateCreated
-
-=cut
 
 sub GetSingleConfigurationByName {
   my $self    = shift @_;
@@ -743,29 +386,12 @@ sub GetSingleConfigurationByName {
     SOAP::Data->name('name' => $config)->type('s:string'));
 
   if ( $self->{GetSingleConfigurationByName}->fault ) {
-    $self->_fault( $self->{GetMachineByName} );
+    $self->_fault( $self->{GetSingleConfigurationByName} );
     return $self->{GetSingleConfigurationByName}->fault;
   } else {
     return $self->{GetSingleConfigurationByName}->result;
   }
 }
-
-=head2 ListConfigurations($type)
-
-This method returns an array or arrayref of configuration objects for the current
-workspace or library.
-
-It depends on configuration type requested.
-
-B<Arguments>
-
-=over
-
-=item * configurationType (Configuration Type must be either 1 for Workspace or 2 for Library) 
-
-=back
-
-=cut
 
 sub ListConfigurations {
   my $self = shift @_;
@@ -794,20 +420,6 @@ sub ListConfigurations {
   return wantarray ? @$array : $array;
 }
 
-=head2 ListMachines
-
-This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID
-
-=back
-
-=cut
-
 sub ListMachines {
   my $self   = shift @_;
   my $config = shift @_;
@@ -830,8 +442,7 @@ sub ListMachines {
   return wantarray ? @$array : $array;
 }
 
-
-
+###### CHECK THIS
 # Not Supported, but works (I believe)
 sub GetConsoleAccessInfo
 {
@@ -853,28 +464,13 @@ sub GetConsoleAccessInfo
   }
 }	
 
+sub LiveLink {
+  my $self = shift @_;
+  my $configName = shift @_;
 
-=head2 LiveLink
-
-This method allows you to create a LiveLink URL to a library configuration. Responds with a livelink URL
-
-B<Arguments>
-
-=over
-
-=item * config Name
-
-=back
-
-=cut
-
-sub LiveLink
-{
-	my($self) = shift @_;
-	my($configName) = shift @_;
-	$self->{LiveLink} = 
-		$self->{soap}->LiveLink( $self->{auth_header}, 
-		SOAP::Data->name('configName' => $configName)->type('s:string'));
+  $self->{LiveLink} = 
+    $self->{soap}->LiveLink( $self->{auth_header}, 
+    SOAP::Data->name('configName' => $configName)->type('s:string'));
 
   if ( $self->{LiveLink}->fault ) {
     $self->_fault( $self->{LiveLink} );
@@ -883,54 +479,6 @@ sub LiveLink
     return $self->{LiveLink}->result;
   }
 }
-
-=head2 MachinePerformAction
-
-This method performs one of the following machine actions as indicated by the action identifier:
-
-=over
-
-=item * 1  Power on. Turns on a machine.
-
-=item * 2  Power off. Turns off a machine. Nothing is saved.
-
-=item * 3  Suspend. Freezes a machine CPU and state.
-
-=item * 4  Resume. Resumes a suspended machine.
-
-=item * 5  Reset. Reboots a machine.
-
-=item * 6  Snapshot. Save a machine state at a specific point in time.
-
-=item * 7  Revert. Returns a machine to a snapshot state.
-
-=item * 8  Shutdown Guest. Shuts down a machine before turning off.
-
-=item * 9 for Consolidate
-
-=item * 10 for Eject CD
-
-=item * 11 for Eject Floppy
-
-=item * 12 for Deploy
-
-=item * 13 for Undeploy
-
-=item * 14 for Force Undeploy
-
-=back
-
-B<Arguments>
-
-=over
-
-=item * Machine ID
-
-=item * Action (use numeral from list aboive)
-
-=back
-
-=cut
 
 sub MachinePerformAction {
   my $self     = shift @_;
@@ -950,37 +498,7 @@ sub MachinePerformAction {
   }
 }
 
-=head1 INTERNAL API METHODS
-
-This methods provide a direct mapping to internal API calls for Labmanager. 
-These calls are not publically supported by VMware and may change between
-releases of the Labmanager product.
-
-=cut
-
-=head2 priv_ConfigurationAddMachineEx
-
-B<Arguments>
-
-=over
-
-=item * id - ID of the configuration.
-
-=item * template_id - ID of the template to be used.
-
-=item * name - The name for the virtual machine.
-
-=item * desc - Description for the virtual machine.
-
-=item * boot_seq - Boot sequence order (0 by default).
-
-=item * boot_delay - Boot delay (0 by default).
-
-=item * netInfo - Array of network information for the virtual machine.
-
-=back
-
-=cut
+### Internal API methods
 
 sub priv_ConfigurationAddMachineEx {
   my $self = shift @_;
@@ -1029,34 +547,6 @@ sub priv_ConfigurationAddMachineEx {
   }
 }
 
-=head2 priv_ConfigurationArchiveEx
-
-This method captures a Workspace configuration and saves into the library.  
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * New library name - The name that you want the captured config to be.
-
-=item * libraryDescription
-
-=item * isGoldMaster
-
-=item * storageName
-
-=item * storageLeaseInMilliseconds
-
-=back
-
-B<Returns>
-
-ID on success. Fault object on fault.
-
-=cut
-
 sub priv_ConfigurationArchiveEx {
   my $self               = shift @_;
   my $configurationId    = shift @_;
@@ -1086,36 +576,6 @@ sub priv_ConfigurationArchiveEx {
     return $self->{ConfigurationArchiveEx}->result;
   }
 }
-
-=head2 priv_ConfigurationCaptureEx
-
-This method captures a Workspace configuration and saves into the library.  
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
-
-=item * New library name - The name that you want the captured config to be.
-
-=item * libraryDescription
-
-=item * isGoldMaster
-
-=item * storageName
-
-=item * storageLeaseInMilliseconds
-
-=back
-
-B<Returns>
-
-ID on success. Fault object on fault.
-
-NB: API docs are wrong on this one. It accepts ConfigurationId and not ConfigurationID
-
-=cut
 
 sub priv_ConfigurationCaptureEx {
   my $self               = shift @_;
@@ -1147,22 +607,6 @@ sub priv_ConfigurationCaptureEx {
   }
 }
 
-=head2 priv_ConfigurationChangeOwner
-
-Changes the owner of the given config.
-
-B<Arguments>
-
-=over
-
-=item * configurationId
-
-=item * newOwnerId
-
-=back
-
-=cut
-
 sub priv_ConfigurationChangeOwner {
   my $self = shift @_;
   my $conf = shift @_;
@@ -1182,28 +626,6 @@ sub priv_ConfigurationChangeOwner {
     return $self->{ConfigurationChangeOwner}->result;
   }
 }
-
-=head2 priv_ConfigurationCopy
-
-This method copys a configuration to a new datastore. (Full clone)
-
-B<Arguments>
-
-=over
-
-=item * sg_id
-
-=item * name
-
-=item * description
-
-=item * Machines array
-
-=item * storage location
-
-=back
-
-=cut
 
 sub priv_ConfigurationCopy {
   my $self        = shift @_;
@@ -1245,36 +667,6 @@ sub priv_ConfigurationCopy {
     return $self->{ConfigurationCopy}->result;
   }
 }
-
-=head2 priv_ConfigurationCloneToWorkspace
-
-This method copys a configuration to a new datastore. (Full clone)
-
-B<Arguments>
-
-=over
-
-=item * destWorkspaceId
-
-=item * isNewConfiguration
-
-=item * newConfigName
-
-=item * description
-
-=item * Machines array
-
-=item * storage location
-
-=item * existingConfigId
-
-=item * isFullClone
-
-=item * storageLeaseInMilliseconds
-
-=back
-
-=cut
 
 sub priv_ConfigurationCloneToWorkspace {
   my $self               = shift @_;
@@ -1328,29 +720,6 @@ sub priv_ConfigurationCloneToWorkspace {
   }
 }
 
-
-=head2 priv_ConfigurationCreateEx
-
-Creates and empty configuration.
-
-B<Arguments>
-
-=over
-
-=item * Name - The name of the configuration 
-
-=item * Description - The description of the configuration
-
-=back
-
-B<Returns>
-
-ID of the configuration on success.
-
-A fault object on fault.
-
-=cut
-
 sub priv_ConfigurationCreateEx {
   my $self = shift @_;
   my $name = shift @_;
@@ -1370,24 +739,6 @@ sub priv_ConfigurationCreateEx {
     return $self->{ConfigurationCreateEx}->result;
   }
 }
-
-=head2 priv_ConfigurationDeployEx2
-
-This method allows you to deploy an undeployed configuration which resides in the Workspace to a Distributed Virtual Switch. Arguments:
-
-B<Arguments>
-
-=over
-
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it. 
-
-=item * Network ID
-
-=item * Fencemode(string) - Choices: Nonfenced or FenceBlockInAndOut or FenceAllowOutOnly or FenceAllowInAndOut
-
-=back
-
-=cut
 
 sub priv_ConfigurationDeployEx2 {
    my $self = shift @_;
@@ -1430,24 +781,6 @@ sub priv_ConfigurationDeployEx2 {
   }
 }
 
-=head2 priv_ConfigurationExport
-
-B<Arguments>
-
-=over
-
-=item * configId
-
-=item * uncPath
-
-=item * username
-
-=item * password
-
-=back
-
-=cut
-
 sub priv_ConfigurationExport {
   my $self = shift @_;
   my $conf = shift @_;
@@ -1471,24 +804,6 @@ sub priv_ConfigurationExport {
     return $self->{ConfigurationExport}->result;
   }
 }
-
-=head2 priv_ConfigurationGetNetworks
-
-Returns an array of physical or virtual network IDs for the specified configuration.
-
-B<Arguments>
-
-=over 4
-
-=item * configID
-
-=item * physical - true/false
-
-=back
-
-This method returns an array of type Network.
-
-=cut
 
 sub priv_ConfigurationGetNetworks {
   my $self = shift @_;
@@ -1520,28 +835,6 @@ sub priv_ConfigurationGetNetworks {
   #return wantarray ? @$array : $array;
 }
 
-=head2 priv_ConfigurationImport
-
-B<Arguments>
-
-=over
-
-=item * UNCPath
-
-=item * dirUsername
-
-=item * dirPassword
-
-=item * name
-
-=item * description
-
-=item * storageName
-
-=back
-
-=cut
-
 sub priv_ConfigurationImport {
   my $self = shift @_;
   my $unc  = shift @_;
@@ -1569,34 +862,6 @@ sub priv_ConfigurationImport {
     return $self->{ConfigurationImport}->result;
   }
 }
-
-=head2 priv_ConfigurationMove
-
-B<Arguments>
-
-=over
-
-=item * configIdToMove
-
-=item * destinationWorkspaceId
-
-=item * isNewConfiguration
-
-=item * newConfigName
-
-=item * newConfigDescription
-
-=item * storageLeaseInMilliseconds
-
-=item * existingConfigId
-
-=item * vmIds
-
-=item * deleteOriginalConfig
-
-=back
-
-=cut
 
 sub priv_ConfigurationMove {
   my $self  = shift @_;
@@ -1641,22 +906,6 @@ sub priv_ConfigurationMove {
   }
 }
 
-=head2 priv_GetAllWorkspaces
-
-B<Arguments>
-
-=over
-
-=item NONE
-
-=back
-
-B<Arguments>
-
-Returns an array of workspace objects.
-
-=cut
-
 sub priv_GetAllWorkspaces {
   my $self = shift @_;
   $self->{GetAllWorkspaces} = $self->{soap_priv}->GetAllWorkspaces( $self->{auth_header} );
@@ -1674,24 +923,6 @@ sub priv_GetAllWorkspaces {
   
   return wantarray ? @$array : $array;
 }
-
-=head2 priv_GetNetworkInfo
-
-Returns the Network information for a specific VM.
-
-B<Arguments>
-
-=over
-
-=item * vmID - VM id number
-
-=back
-
-B<Returns>
-
-An array of Network references.
-
-=cut
 
 sub priv_GetNetworkInfo {
   my $self = shift @_;
@@ -1717,25 +948,6 @@ sub priv_GetNetworkInfo {
   return wantarray ? @$array : $array;
 }
 
-=head2 priv_GetObjectConditions
-
-B<Arguments>
-
-=over
-
-=item * objectType - Integer representing the object type:
-
-  VM = 1
-  MANAGED_SERVER = 2
-  RESOURCE_POOL = 3
-  CONFIGURATION = 4
-
-=item * objectID - Object id number
-
-=back
-
-=cut
-
 sub priv_GetObjectConditions {
   my $self = shift @_;
   my $objectType = shift @_;
@@ -1756,22 +968,6 @@ sub priv_GetObjectConditions {
   }
 }
 
-=head2 priv_GetOrganization
-
-B<Arguments>
-
-=over
-
-=item * organizationId
-
-=back
-
-B<Returns>
-
-Organization object
-
-=cut
-
 sub priv_GetOrganization {
   my $self = shift @_;
   my $oid  = shift @_;
@@ -1789,22 +985,6 @@ sub priv_GetOrganization {
     return $self->{GetOrganization}->result;
   }
 }
-
-=head2 priv_GetOrganizations
-
-B<Arguments>
-
-=over
-
-=item NONE
-
-=back
-
-B<Arguments>
-
-Returns an array of organization refs.
-
-=cut
 
 sub priv_GetOrganizations {
   my $self = shift @_;  
@@ -1824,18 +1004,6 @@ sub priv_GetOrganizations {
   return wantarray ? @$array : $array;
 }
 
-=head2 priv_GetOrganizationByName
-
-B<Arguments>
-
-=over
-
-=item * organizationName
-
-=back
-
-=cut
-
 sub priv_GetOrganizationByName {
   my $self = shift @_;
   my $name = shift @_;
@@ -1853,22 +1021,6 @@ sub priv_GetOrganizationByName {
     return $self->{GetOrganizationByName}->result;
   }
 }
-
-=head2 priv_GetOrganizationWorkspaces
-
-B<Arguments>
-
-=over
-
-=item * organizationId
-
-=back
-
-B<Returns>
-
-An array of Workspace objects that are in the given organizations.
-
-=cut
 
 sub priv_GetOrganizationWorkspaces {
   my $self = shift @_;
@@ -1894,22 +1046,6 @@ sub priv_GetOrganizationWorkspaces {
   return wantarray ? @$array : $array;
 }
 
-=head2 priv_GetTemplate
-
-B<Arguments>
-
-=over
-
-=item * template id
-
-=back
-
-B<Returns>
-
-Template object.
-
-=cut
-
 sub priv_GetTemplate {
   my $self = shift @_;
   my $id  = shift @_;
@@ -1927,22 +1063,6 @@ sub priv_GetTemplate {
     return $self->{GetTemplate}->result;
   }
 }
-
-=head2 priv_GetUser
-
-B<Arguments>
-
-=over
-
-=item * userName
-
-=back
-
-B<Returns>
-
-User object.
-
-=cut
 
 sub priv_GetUser {
   my $self = shift @_;
@@ -1962,18 +1082,6 @@ sub priv_GetUser {
   }
 }
 
-=head2 priv_GetWorkspaceByName
-
-B<Arguments>
-
-=over
-
-=item * string
-
-=back
-
-=cut
-
 sub priv_GetWorkspaceByName {
   my $self = shift @_;
   my $name = shift @_;
@@ -1991,32 +1099,6 @@ sub priv_GetWorkspaceByName {
     return $self->{GetWorkspaceByName}->result;
   }
 }
-
-=head2 priv_LibraryCloneToWorkspace
-
-=over
-
-=item * libraryId
-
-=item * destWorkspaceId
-
-=item * isNewConfiguration
-
-=item * newConfigName
-
-=item * description
-
-=item * copyData
-
-=item * existingConfigId
-
-=item * isFullClone
-
-=item * storageLeaseInMilliseconds 
-
-=back
-
-=cut
 
 sub priv_LibraryCloneToWorkspace {
   my $self            = shift @_;
@@ -2073,12 +1155,6 @@ sub priv_LibraryCloneToWorkspace {
   }
 }
 
-=head2 priv_ListNetworks
-
-This method returns an array of type Network. The method returns one Network object for each network configured.
-
-=cut
-
 sub priv_ListNetworks {
   my $self = shift @_;
   $self->{ListNetworks} = $self->{soap_priv}->ListNetworks( $self->{auth_header} );
@@ -2097,12 +1173,6 @@ sub priv_ListNetworks {
   return wantarray ? @$array : $array;
 }
 
-=head2 priv_ListTemplates
-
-This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
-
-=cut
-
 sub priv_ListTemplates {
   my $self = shift @_;
   $self->{ListTemplates} = $self->{soap_priv}->ListTemplates( $self->{auth_header} );
@@ -2120,12 +1190,6 @@ sub priv_ListTemplates {
   
   return wantarray ? @$array : $array;
 }
-
-=head2 priv_ListTransportNetworksInCurrentOrg
-
-This method returns an array of type TransportNetwork. The method returns one Network object for each network configured.
-
-=cut
 
 sub priv_ListTransportNetworksInCurrentOrg {
   my $self = shift @_;
@@ -2147,13 +1211,6 @@ sub priv_ListTransportNetworksInCurrentOrg {
   #return wantarray ? @$array : $array;
 }
 
-=head2 priv_ListUsers
-
-This method returns an array of type Users. The method returns one User object for 
-each User imported into LabMan.
-
-=cut
-
 sub priv_ListUsers {
   my $self = shift @_;
   $self->{ListUsers} = $self->{soap_priv}->ListUsers( $self->{auth_header} );
@@ -2172,18 +1229,6 @@ sub priv_ListUsers {
   return wantarray ? @$array : $array;
 }
 
-=head2 priv_MachineUpgradeVirtualHardware
-
-B<Arguments>
-
-=over
-
-=item * machineId - machine id number
-
-=back
-
-=cut
-
 sub priv_MachineUpgradeVirtualHardware {
   my $self = shift @_;
   my $id   = shift @_;
@@ -2200,24 +1245,6 @@ sub priv_MachineUpgradeVirtualHardware {
     return $self->{MachineUpgradeVirtualHardware}->result;
   }
 }
-
-=head2 priv_NetworkInterfaceCreate
-
-B<Arguments>
-
-=over
-
-=item * vmID - VM id number
-
-=item * networkID
-
-=item * IPAssignmentType
-
-=item * IPAddress
-
-=back
-
-=cut
 
 sub priv_NetworkInterfaceCreate {
   my $self   = shift @_;
@@ -2243,18 +1270,6 @@ sub priv_NetworkInterfaceCreate {
   }
 }
 
-=head2 priv_NetworkInterfaceDelete
-
-=over
-
-=item * vmID - VM id number
-
-=item * nicID
-
-=back
-
-=cut
-
 sub priv_NetworkInterfaceDelete {
   my $self  = shift @_;
   my $vmid  = shift @_;
@@ -2274,20 +1289,6 @@ sub priv_NetworkInterfaceDelete {
     return $self->{NetworkInterfaceDelete}->result;
   }
 }
-
-=head2 priv_NetworkInterfaceModify
-
-B<Arguments>
-
-=over
-
-=item * vmID - VM id number
-
-=item * info -
-
-=back
-
-=cut
 
 sub priv_NetworkInterfaceModify { ### INCOMPLETE
   my $self   = shift @_;
@@ -2312,16 +1313,6 @@ sub priv_NetworkInterfaceModify { ### INCOMPLETE
   }
 }
 
-=head2 priv_StorageServerVMFSFindByName
-
-=over
-
-=item * Storename
-
-=back
-
-=cut
-
 sub priv_StorageServerVMFSFindByName {
   my $self      = shift @_;
   my $storeName = shift @_;
@@ -2342,22 +1333,6 @@ sub priv_StorageServerVMFSFindByName {
   }
 }
 
-=head2 priv_TemplateChangeOwner
-
-Changes the owner of the given template.
-
-B<Arguments>
-
-=over
-
-=item * templateId
-
-=item * newOwnerId
-
-=back
-
-=cut
-
 sub priv_TemplateChangeOwner {
   my $self = shift @_;
   my $temp = shift @_;
@@ -2377,26 +1352,6 @@ sub priv_TemplateChangeOwner {
     return $self->{TemplateChangeOwner}->result;
   }
 }
-
-=head2 priv_TemplateExport
-
-Exports a template out to a UNC path for later import.
-
-B<Arguments>
-
-=over
-
-=item * template_id
-
-=item * UNCPath
-
-=item * username
-
-=item * password
-
-=back
-
-=cut
 
 sub priv_TemplateExport {
   my $self = shift @_;
@@ -2421,30 +1376,6 @@ sub priv_TemplateExport {
     return $self->{TemplateExport}->result;
   }
 }
-
-=head2 priv_TemplateImport
-
-B<Arguments>
-
-=over
-
-=item * UNCPath
-
-=item * dirUsername
-
-=item * dirPassword
-
-=item * name
-
-=item * description
-
-=item * storageName
-
-=item * parameterList
-
-=back
-
-=cut
 
 sub priv_TemplateImport {
   my $self = shift @_;
@@ -2501,32 +1432,6 @@ sub priv_TemplateImport {
   }
 }
 
-=head2 priv_TemplateImportFromSMB
-
-B<Arguments>
-
-=over
-
-=item * UNCpath
-
-=item * username
-
-=item * password
-
-=item * delete
-
-=item * description
-
-=item * destStore
-
-=item * destName
-
-=item * destDesc
-
-=back
-
-=cut
-
 sub priv_TemplateImportFromSMB {
   my $self        = shift @_;
   my $UNCPath     = shift @_;
@@ -2579,36 +1484,6 @@ sub priv_TemplateImportFromSMB {
   return $self->{TemplateImportFromSMB}->result;
 }
 
-=head2 priv_TemplatePerformAction
-
-B<Arguments>
-
-=over
-
-=item * Template ID
-
-=item * Action
-
-The action is a number representing any of the following:
-
-In case other people end up here via Google like I did.
-
-These values are listed in the internal API chm if you dig for them:
-
-  * 1 for Deploy
-  * 2 for Undeploy in Discard State
-  * 3 for Delete
-  * 4 for Reset
-  * 5 for Make Shared
-  * 6 for Make Private
-  * 7 for Publish
-  * 8 for Unpublish
-  * 9 for Undeploy in Save State
-
-=back
-
-=cut
-
 sub priv_TemplatePerformAction {
   my $self        = shift @_;
   my $template_id = shift @_;
@@ -2625,27 +1500,7 @@ sub priv_TemplatePerformAction {
    }
  
    return $self->{TemplatePerformAction}->result;
- }
-
-=head2 priv_WorkspaceCreate
-
-B<Arguments>
-
-=over
-
-=item * name
-
-=item * isMain
-
-=item * description
-
-=item * storedVMQuota
-
-=item * deployedVMQuota
-
-=back
-
-=cut
+}
 
 sub priv_WorkspaceCreate {
   my $self        = shift @_;
@@ -2671,11 +1526,1191 @@ sub priv_WorkspaceCreate {
 
 __END__
 
-=head1 EXAMPLES
+=head1 NAME
+
+VMware::API::LabManager - The VMware LabManager API
+
+=head1 SYNOPSIS
+
+This module has been developed against VMware vCenter Lab Manager 4.0 (4.0.1.1233)
+
+Code to checkout, deploy, undeploy and delete a configuration:
+
+ 	use VMware::API::LabManager;
+
+    my $labman = new VMware::LabManager ( $username, $password, $server, $orgname, $workspace );
+
+ 	# Get the id of the config you are going to check out 
+ 	my $config = $labman->GetSingleConfigurationByName("myConfigName");
+
+ 	# Checkout the config
+ 	my $checked_out_config_id  = $labman->ConfigurationCheckout($lib_config_id[0],"NEW_WORKSPACE_NAME");
+
+ 	# Deploy the config
+ 	my $ret = $labman->ConfigurationDeploy($checked_out_config_id,4); # The 4 is for the fencemode
+
+ 	# Undeploy the config
+ 	my $ret = $labman->ConfigurationUndeploy($chkd_out_id);
+
+ 	# Delete the config
+ 	my $ret = $labman->ConfigurationDelete($chkd_out_id); # You really should be sure before doing this :)
+
+	# Check for last SOAP error
+    print $labman->getLastSOAPError();
+
+=head1 DESCRIPTION
+
+This module provides a Perl interface to VMWare's Labmanager SOAP interface. It 
+has a one-to-one mapping for most of the commands exposed in the external API as 
+well as a few commands exposed in the internal API. The most useful Internal API 
+command is ConfigurationDeployEx2 which allows you to deploy to distributed 
+virtual switches.  
+
+Using this module you can checkout, deploy, undeploy and delete configurations. 
+You can also get lists of configurations and guest information as well.
+
+Lab Manager is a product created by VMWare that provides development and test 
+teams with a virtual environment to deploy systems and networks of systems in a 
+short period of a time. 
+
+=head1 RETURNED VALUES
+
+Many of the methods return hash references or arrays of hash references that 
+contain information about a specific "object" or conecpt on the Lab Manager 
+server. This is a rough analog to the Managed Object Reference structure of
+the VIPERL SDK without the generic interface for retireval.
+
+Below are some of the commoned return value types and example values.
+
+=head2 Config
+
+  Need to add this example.
+
+=head2 Machine
+
+          {
+            'configID' => '97',
+            'status' => '0',
+            'OwnerFullName' => 'Jones, Bob',
+            'name' => 'VM0',
+            'description' => '',
+            'isDeployed' => 'false',
+            'memory' => '16',
+            'DatastoreNameResidesOn' => 'labmgr_01',
+            'id' => '116'
+          }
+
+
+=head2 Network Interface (NIC)
+
+          {
+            'isConnected' => 'true',
+            'macAddress' => '00:50:56:0a:00:aa',
+            'networkId' => '63',
+            'nicId' => '221',
+            'vmxSlot' => '0',
+            'ipAddressingMode' => 'DHCP',
+            'resetMac' => 'false'
+          }
+
+=head2 Organization
+
+  Need to add this example.
+
+=head2 Workspace
+
+The following represents a workspace called "Main" that has no configurations
+or resource pools.
+
+          {
+            'Configurations' => '',
+            'Id' => '8',
+            'ResourcePools' => '',
+            'BucketType' => '3',
+            'StoredVMQuota' => '0',
+            'DeployedVMQuota' => '0',
+            'Name' => 'Main',
+            'Description' => '',
+            'IsEnabled' => 'false'
+          };
+
+When a workspace is associated with a given resource pool or contains a configuration,
+references to those objects are returned as well.
+
+NB: If only a single configuration or resource pool is returned, it is a direct hash
+reference, as below. Otherwise, if there are multiple, an arrayref of hash references
+will be present in that location.
+
+          {
+            'Configurations' => {
+                                'Configuration' => {
+                                                   'owner' => 'bjones',
+                                                   'mustBeFenced' => 'NotSpecified',
+                                                   'autoDeleteDateTime' => '9999-12-31T23:59:59.9999999',
+                                                   'bucketName' => 'Main',
+                                                   'name' => 'migration-test02',
+                                                   'autoDeleteInMilliSeconds' => '0',
+                                                   'description' => '',
+                                                   'isDeployed' => 'false',
+                                                   'fenceMode' => '0',
+                                                   'id' => '95',
+                                                   'type' => '1',
+                                                   'isPublic' => 'false',
+                                                   'dateCreated' => '2010-08-24T14:22:25.437'
+                                                 }
+                              },
+            'Id' => '10',
+            'ResourcePools' => {
+                               'ResourcePool' => {
+                                                 'ID' => '1',
+                                                 'isBlackListed' => 'false',
+                                                 'name' => 'DevPool1',
+                                                 'rpValRefFullID' => 'resgroup-2411',
+                                                 'path' => 'DC2/LAB-MGR/PAI',
+                                                 'description' => '',
+                                                 'isEnabled' => 'true',
+                                                 'rpValRefShortID' => 'resgroup-2411'
+                                               }
+                             },
+            'BucketType' => '3',
+            'StoredVMQuota' => '0',
+            'DeployedVMQuota' => '0',
+            'Name' => 'Main',
+            'Description' => '',
+            'IsEnabled' => 'true'
+          };
+          
+=head2 Network
+
+          {
+            'VlanID' => '583',
+            'IsAddressingModeLocked' => 'false',
+            'NetType' => 'Template',
+            'IsPhysical' => 'true',
+            'DnsSuffix' => '',
+            'parentNetId' => '0',
+            'Netmask' => '',
+            'NetworkValref' => 'LM-DHCP-4LM10',
+            'IsDeployFencedLocked' => 'true',
+            'Gateway' => '',
+            'IsNone' => 'false',
+            'userId' => '0',
+            'Dns2' => '',
+            'DeployFencedMode' => 'Nonfenced',
+            'Dns1' => '',
+            'NetID' => '4',
+            'DeployFenced' => 'false',
+            'IPAddressingMode' => 'DHCP',
+            'Description' => 'dhcp IP Pool',
+            'Name' => 'LM-DHCP'
+          },
+
+=head2 User
+
+          {
+            'is_enabled' => 'true',
+            'email_address' => 'bjones@company.com',
+            'userId' => '3',
+            'name' => 'bjones',
+            'cache_mode' => '0',
+            'full_name' => 'Jones, Bob',
+            'fence_mode' => '0',
+            'is_ldap' => 'true',
+            'is_admin' => 'true',
+            'stored_vm_quota' => '0',
+            'deployed_vm_quota' => '0'
+          },
+
+=head1 EXAMPLE SCRIPTS
+
+Included in the distribution of this module are several example scripts. Hopefully
+they provide an example of the usage of the Lab Manager API. All scripts have
+their own POD and accept command line parameters in a similar way to the VIPERL
+SDK utilities and vghetto scripts.
+
+    conditions.pl - An example displaying an objects conditions.
+    delete-all.pl - Deletes every template and configuration in a given LabMan installation
+    hwupgrade.pl - Performs an upgrade on the virtual hardware of the specified configuration
+    list-machines.pl - Lists all machines within the specified configuration
+    list-networks.pl - Lists all the networks available to the specified user.
+    list-organization.pl - Lists all the organizations available to the specified user.
+    list-templates.pl - Lists all the template objects available to the specified user.
+    list-users.pl - Lists all information on users in the Lab Manager system.
+    list-workspaces.pl - Lists all the workspaces available to the specified user.
+    move.pl - An example script of moving a config between workspaces.
+
+=head1 PERL MODULE METHODS
+
+These methods are not direct API calls. They represent the methods that create
+or  module as a "wrapper" for the Labmanager API.
+
+=head2 new
+
+This method creates the Labmanager object.
+
+U<Arguments>
+
+=over
+
+=item * username
+
+=item * password
+
+=item * hostname
+
+=item * organization
+
+=item * workspace
+
+=back
+
+=head2 config
+
+  $labman->config( debug => 1 );
+
+=over 4
+
+=item debug - 1 to turn on debugging. 0 for none. Defaults to 0.
+
+=item die_on_fault - 1 to cause the program to die verbosely on a soap fault. 0 for the fault object to be returned on the call and for die() to not be called. Defaults to 1. If you choose not to die_on_fault (for example, if you are writing a CGI) you will want to check all return objects to see if they are fault objects or not.
+
+=item ssl_timeout - seconds to wait for timeout. Defaults to 3600. (1hr) This is how long a transaction response will be waited for once submitted. For slow storage systems and full clones, you may want to up this higher. If you find yourself setting this to more than 6 hours, your Lab Manager setup is probably not in the best shape.
+
+=item hostname, orgname, workspace, username and password - All of these values can be changed from the original settings on new(). This is handing for performing multiple transactions across organizations.
+
+=back
+
+=head2 getLastSOAPError
+
+Returns and clears the last error reported by SOAP service.
+
+=head1 PUBLIC API METHODS
+
+This methods provide a direct mapping to the public API calls for Labmanager.
+
+=head2 ConfigurationCapture
+
+This method captures a Workspace configuration and saves into the library.  
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New library name - The name that you want the captured config to be.
+
+=back
+
+U<Returns>
+
+ID on success. Fault object on fault.
+
+=head2 ConfigurationCheckout
+
+This method checks out a configuration from the configuration library and moves it to the Workspace under a different name. It returns the ID of the checked out configuration in the WorkSpace.
+
+WARNING: If you get the following SOAP Error: 
+
+=over 4
+
+Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main' ---> Expecting single row, got multiple rows for: SELECT * FROM BucketWithParent WHERE name = N'Main'
+
+=back
+
+This is because there are multiple workspaces named "Main", in different organizations. Apparently this API call doesn't limit the check for workspace name against the organization you authenticated with.
+
+A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New workspace name - The name you want the new config in the workspace to be.
+
+=back
+
+=head2 ConfigurationClone
+
+This method clones a Workspace configuration, saves it in a storage server, and makes it visible in the Workspace under the new name. Arguements:
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New workspace name - The name of the clone that is being created.
+
+=back
+
+=head2 ConfigurationDelete
+
+This method deletes a configuration from the Workspace. You cannot delete a deployed configuration. Doesn't return anything. Arguments:
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=back
+
+=head2 ConfigurationDeploy
+
+This method allows you to deploy an undeployed configuration which resides in the Workspace.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * Fencemode - 1 = not fenced; 2 = block traffic in and out; 3 = allow out ; 4 allow in and out
+
+=back
+
+=head2 ConfigurationPerformAction
+
+This method performs one of the following configuration actions as indicated by the action identifier:
+
+  1 : Power On. Turns on a configuration.
+  2 : Power Off. Turns off a configuration. Nothing is saved.
+  3 : Suspend. Freezes the CPU and state of a configuration.
+  4 : Resume. Resumes a suspended configuration.
+  5 : Reset. Reboots a configuration.
+  6 : Snapshot. Saves a configuration state at a specific point in time.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * Action - use a numerical value from the list above.
+
+=back
+
+=head2 ConfigurationSetPublicPrivate
+
+Use this call to set the state of a configuration to public” or private.” If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * True or False (boolean) - Accepts true | false | 1 | 0
+
+=back
+
+=head2 ConfigurationUndeploy
+
+Undeploys a configuration in the Workspace. Nothing is returned.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=back
+
+=head2 GetConfiguration
+
+This method retruns a reference to a Configuration matching the configuration ID passed.
+
+U<Arguments>
+
+=over
+
+=item * Config ID
+
+=back
+
+U<Returns>
+
+A hashref to a configuration. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
+name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
+dateCreated
+
+=head2 GetConfigurationByName
+
+This method retruns a reference to a Configuration matching the configuration ID passed.
+
+U<Arguments>
+
+=over
+
+=item * Config Name
+
+=back
+
+U<Returns>
+
+An array of configurations matching this name. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
+name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
+dateCreated
+
+=head2 GetMachine
+
+This call takes the numeric identifier of a machine and returns its corresponding Machine object.
+
+U<Arguments>
+
+=over
+
+=item * Machine ID - Use GetMachineByName to retrieve this
+
+=back
+
+U<Returns>
+
+A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
+name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
+
+=head2 GetMachineByName
+
+This call takes a configuration identifier and a machine name and returns the matching Machine object.
+
+U<Arguments>
+
+=over
+ 
+=item * Configuration ID - Config where Guest VM lives
+
+=item * Name of guest
+
+=back
+
+U<Returns>
+
+A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
+name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
+
+=head2 GetSingleConfigurationByName
+
+This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object.
+
+U<Arguments>
+
+=over
+
+=item * Configuration name 
+
+=back
+
+U<Returns>
+
+A hashref to a configuration. Example elements: mustBeFenced, autoDeleteDateTime,
+bucketName (aka workspace), name, autoDeleteInMilliSeconds, description, isDeployed,
+fenceMode, id, type, isPublic, dateCreated
+
+=head2 ListConfigurations($type)
+
+This method returns an array or arrayref of configuration objects for the current
+workspace or library.
+
+It depends on configuration type requested.
+
+U<Arguments>
+
+=over
+
+=item * configurationType (Configuration Type must be either 1 for Workspace or 2 for Library) 
+
+=back
+
+=head2 ListMachines
+
+This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID
+
+=back
+
+=head2 LiveLink
+
+This method allows you to create a LiveLink URL to a library configuration. Responds with a livelink URL
+
+U<Arguments>
+
+=over
+
+=item * config Name
+
+=back
+
+=head2 MachinePerformAction
+
+This method performs one of the following machine actions as indicated by the action identifier:
+
+=over
+
+=item * 1  Power on. Turns on a machine.
+
+=item * 2  Power off. Turns off a machine. Nothing is saved.
+
+=item * 3  Suspend. Freezes a machine CPU and state.
+
+=item * 4  Resume. Resumes a suspended machine.
+
+=item * 5  Reset. Reboots a machine.
+
+=item * 6  Snapshot. Save a machine state at a specific point in time.
+
+=item * 7  Revert. Returns a machine to a snapshot state.
+
+=item * 8  Shutdown Guest. Shuts down a machine before turning off.
+
+=item * 9 for Consolidate
+
+=item * 10 for Eject CD
+
+=item * 11 for Eject Floppy
+
+=item * 12 for Deploy
+
+=item * 13 for Undeploy
+
+=item * 14 for Force Undeploy
+
+=back
+
+U<Arguments>
+
+=over
+
+=item * Machine ID
+
+=item * Action (use numeral from list aboive)
+
+=back
+
+=head1 INTERNAL API METHODS
+
+This methods provide a direct mapping to internal API calls for Labmanager. 
+These calls are not publically supported by VMware and may change between
+releases of the Labmanager product.
+
+=cut
+
+=head2 priv_ConfigurationAddMachineEx
+
+U<Arguments>
+
+=over
+
+=item * id - ID of the configuration.
+
+=item * template_id - ID of the template to be used.
+
+=item * name - The name for the virtual machine.
+
+=item * desc - Description for the virtual machine.
+
+=item * boot_seq - Boot sequence order (0 by default).
+
+=item * boot_delay - Boot delay (0 by default).
+
+=item * netInfo - Array of network information for the virtual machine.
+
+=back
+
+=head2 priv_ConfigurationArchiveEx
+
+This method captures a Workspace configuration and saves into the library.  
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New library name - The name that you want the captured config to be.
+
+=item * libraryDescription
+
+=item * isGoldMaster
+
+=item * storageName
+
+=item * storageLeaseInMilliseconds
+
+=back
+
+U<Returns>
+
+ID on success. Fault object on fault.
+
+=head2 priv_ConfigurationCaptureEx
+
+This method captures a Workspace configuration and saves into the library.  
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
+
+=item * New library name - The name that you want the captured config to be.
+
+=item * libraryDescription
+
+=item * isGoldMaster
+
+=item * storageName
+
+=item * storageLeaseInMilliseconds
+
+=back
+
+U<Returns>
+
+ID on success. Fault object on fault.
+
+NB: API docs are wrong on this one. It accepts ConfigurationId and not ConfigurationID
+
+=head2 priv_ConfigurationChangeOwner
+
+Changes the owner of the given config.
+
+U<Arguments>
+
+=over
+
+=item * configurationId
+
+=item * newOwnerId
+
+=back
+
+=head2 priv_ConfigurationCopy
+
+This method copys a configuration to a new datastore. (Full clone)
+
+U<Arguments>
+
+=over
+
+=item * sg_id
+
+=item * name
+
+=item * description
+
+=item * Machines array
+
+=item * storage location
+
+=back
+
+=head2 priv_ConfigurationCloneToWorkspace
+
+This method copys a configuration to a new datastore. (Full clone)
+
+U<Arguments>
+
+=over
+
+=item * destWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * description
+
+=item * Machines array
+
+=item * storage location
+
+=item * existingConfigId
+
+=item * isFullClone
+
+=item * storageLeaseInMilliseconds
+
+=back
+
+=head2 priv_ConfigurationCreateEx
+
+Creates and empty configuration.
+
+U<Arguments>
+
+=over
+
+=item * Name - The name of the configuration 
+
+=item * Description - The description of the configuration
+
+=back
+
+U<Returns>
+
+ID of the configuration on success.
+
+A fault object on fault.
+
+=head2 priv_ConfigurationDeployEx2
+
+This method allows you to deploy an undeployed configuration which resides in the Workspace to a Distributed Virtual Switch. Arguments:
+
+U<Arguments>
+
+=over
+
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it. 
+
+=item * Network ID
+
+=item * Fencemode(string) - Choices: Nonfenced or FenceBlockInAndOut or FenceAllowOutOnly or FenceAllowInAndOut
+
+=back
+
+=head2 priv_ConfigurationExport
+
+U<Arguments>
+
+=over
+
+=item * configId
+
+=item * uncPath
+
+=item * username
+
+=item * password
+
+=back
+
+=head2 priv_ConfigurationGetNetworks
+
+Returns an array of physical or virtual network IDs for the specified configuration.
+
+U<Arguments>
+
+=over 4
+
+=item * configID
+
+=item * physical - true/false
+
+=back
+
+This method returns an array of type Network.
+
+=head2 priv_ConfigurationImport
+
+U<Arguments>
+
+=over
+
+=item * UNCPath
+
+=item * dirUsername
+
+=item * dirPassword
+
+=item * name
+
+=item * description
+
+=item * storageName
+
+=back
+
+=head2 priv_ConfigurationMove
+
+U<Arguments>
+
+=over
+
+=item * configIdToMove
+
+=item * destinationWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * newConfigDescription
+
+=item * storageLeaseInMilliseconds
+
+=item * existingConfigId
+
+=item * vmIds
+
+=item * deleteOriginalConfig
+
+=back
+
+=head2 priv_GetAllWorkspaces
+
+U<Arguments>
+
+=over
+
+=item NONE
+
+=back
+
+U<Arguments>
+
+Returns an array of workspace objects.
+
+=head2 priv_GetNetworkInfo
+
+Returns the Network information for a specific VM.
+
+U<Arguments>
+
+=over
+
+=item * vmID - VM id number
+
+=back
+
+U<Returns>
+
+An array of Network references.
+
+=head2 priv_GetObjectConditions
+
+U<Arguments>
+
+=over
+
+=item * objectType - Integer representing the object type:
+
+  VM = 1
+  MANAGED_SERVER = 2
+  RESOURCE_POOL = 3
+  CONFIGURATION = 4
+
+=item * objectID - Object id number
+
+=back
+
+=head2 priv_GetOrganization
+
+U<Arguments>
+
+=over
+
+=item * organizationId
+
+=back
+
+U<Returns>
+
+Organization object
+
+=head2 priv_GetOrganizations
+
+U<Arguments>
+
+=over
+
+=item NONE
+
+=back
+
+U<Arguments>
+
+Returns an array of organization refs.
+
+=head2 priv_GetOrganizationByName
+
+U<Arguments>
+
+=over
+
+=item * organizationName
+
+=back
+
+=head2 priv_GetOrganizationWorkspaces
+
+U<Arguments>
+
+=over
+
+=item * organizationId
+
+=back
+
+U<Returns>
+
+An array of Workspace objects that are in the given organizations.
+
+=head2 priv_GetTemplate
+
+U<Arguments>
+
+=over
+
+=item * template id
+
+=back
+
+U<Returns>
+
+Template object.
+
+=head2 priv_GetUser
+
+U<Arguments>
+
+=over
+
+=item * userName
+
+=back
+
+U<Returns>
+
+User object.
+
+=head2 priv_GetWorkspaceByName
+
+U<Arguments>
+
+=over
+
+=item * string
+
+=back
+
+=head2 priv_LibraryCloneToWorkspace
+
+=over
+
+=item * libraryId
+
+=item * destWorkspaceId
+
+=item * isNewConfiguration
+
+=item * newConfigName
+
+=item * description
+
+=item * copyData
+
+=item * existingConfigId
+
+=item * isFullClone
+
+=item * storageLeaseInMilliseconds 
+
+=back
+
+=head2 priv_ListNetworks
+
+This method returns an array of type Network. The method returns one Network object for each network configured.
+
+=head2 priv_ListTemplates
+
+This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
+
+=head2 priv_ListTransportNetworksInCurrentOrg
+
+This method returns an array of type TransportNetwork. The method returns one Network object for each network configured.
+
+=head2 priv_ListUsers
+
+This method returns an array of type Users. The method returns one User object for 
+each User imported into LabMan.
+
+=head2 priv_MachineUpgradeVirtualHardware
+
+U<Arguments>
+
+=over
+
+=item * machineId - machine id number
+
+=back
+
+=head2 priv_NetworkInterfaceCreate
+
+U<Arguments>
+
+=over
+
+=item * vmID - VM id number
+
+=item * networkID
+
+=item * IPAssignmentType
+
+=item * IPAddress
+
+=back
+
+=head2 priv_NetworkInterfaceDelete
+
+=over
+
+=item * vmID - VM id number
+
+=item * nicID
+
+=back
+
+=head2 priv_NetworkInterfaceModify
+
+U<Arguments>
+
+=over
+
+=item * vmID - VM id number
+
+=item * info -
+
+=back
+
+=head2 priv_StorageServerVMFSFindByName
+
+=over
+
+=item * Storename
+
+=back
+
+=head2 priv_TemplateChangeOwner
+
+Changes the owner of the given template.
+
+U<Arguments>
+
+=over
+
+=item * templateId
+
+=item * newOwnerId
+
+=back
+
+=head2 priv_TemplateExport
+
+Exports a template out to a UNC path for later import.
+
+U<Arguments>
+
+=over
+
+=item * template_id
+
+=item * UNCPath
+
+=item * username
+
+=item * password
+
+=back
+
+=head2 priv_TemplateImport
+
+U<Arguments>
+
+=over
+
+=item * UNCPath
+
+=item * dirUsername
+
+=item * dirPassword
+
+=item * name
+
+=item * description
+
+=item * storageName
+
+=item * parameterList
+
+=back
+
+=head2 priv_TemplateImportFromSMB
+
+U<Arguments>
+
+=over
+
+=item * UNCpath
+
+=item * username
+
+=item * password
+
+=item * delete
+
+=item * description
+
+=item * destStore
+
+=item * destName
+
+=item * destDesc
+
+=back
+
+=head2 priv_TemplatePerformAction
+
+U<Arguments>
+
+=over
+
+=item * Template ID
+
+=item * Action
+
+The action is a number representing any of the following:
+
+  1 for Deploy
+  2 for Undeploy in Discard State
+  3 for Delete
+  4 for Reset
+  5 for Make Shared
+  6 for Make Private
+  7 for Publish
+  8 for Unpublish
+  9 for Undeploy in Save State
+
+=back
+
+=head2 priv_WorkspaceCreate
+
+U<Arguments>
+
+=over
+
+=item * name
+
+=item * isMain
+
+=item * description
+
+=item * storedVMQuota
+
+=item * deployedVMQuota
+
+=back
 
 =head1 BUGS AND LIMITATIONS
 
-=head3 Authentication and latentcy
+=head2 Authentication and latentcy
 
 The API is designed by VMware to require an authentication header with every
 SOAP action. This means that you are re-autneticated on each action you perform.
@@ -2705,11 +2740,11 @@ One potential workaround is to use a local user account for API actions. Local
 accounts can be created and co-exist while remote (LDAP/AD) authentication is 
 used. Local user accounts authenticate much quicker than other forms.
 
-=head3 priv_ConfigurationAddMachineEx()
+=head2 priv_ConfigurationAddMachineEx()
 
 This call does not currently build the correct Ethernet driver information.
 
-=head3 ConfigurationCheckout() API errors.
+=head2 ConfigurationCheckout() API errors.
 
 If you get the following SOAP Error: 
 
@@ -2725,7 +2760,7 @@ A workaround is to make sure you use this call on a uniquely name workspace or t
 
 This is a known issue with LabManager 4.
 
-=head3 priv_ConfigurationCaptureEx()
+=head2 priv_ConfigurationCaptureEx()
 
 The API documents for these calls have a typo. The parameter accepted by the SOAP call is ConfigurationId and not ConfigurationID. Reviewing the WSDL shows the correct parameters accepted by ther server.
 
@@ -2754,7 +2789,7 @@ document.)
 
 This lovely gem usually pops up when a required parameter is missing in a 
 given SOAP call. This probably reflects a typo or capitalization error in the
-underlying wrapper call. IE: A mistake that I made. Let me know if you figure 
+underlying wrapper call. (AKA: A mistake that I made.) Let me know if you figure 
 out what is up. As is referenced in the BUGS AND LIMITATIONS section, the 
 documentation for the API is incorrect in some places. The WSDL on the server 
 is considered authorative and I'd check that first for resolution.
@@ -2769,23 +2804,38 @@ dearly love a few changes, that might help things:
 
 * The template object should reference "owner" and not "ownerFullName." All 
 ownership in the rest of the API is associated with the username, which is 
-unique. To figure out who owns a template you have to crosswalk the name 
-backwards and the full name is not guarenteed unique.
+unique. To figure out who owns a template you have to crosswalk the full name 
+back to username and the full name is not guarenteed to be unique.
 
 * The template object should list the organization it is based in. Short of 
 doing a list of all templates in each organization and diffing them, there is 
 no quick way to determine if a template belongs only to this group, or is 
-global and shared.
+global and shared. (Oh, and if you do diff them for that information, a template
+in global shared to only one organization looks exactly the same as a template
+that exists only in one organization. So it's not a foolproof workaround.)
 
 * Consistent naming and capitalization.
 
+  UNCPath vs uncPath
+  userName vs username
+  configurationId vs configurationID
+  templateId vs template_id
+
 * A way to look at the underlying ID numbers for items in the Lab Manager UI.
+
+Boy would this make my life easier to debug issues quickly.
 
 * A way to look up a VM's vsphere name.
 
+This information is displayed in the UI but is unavailable in the API.
+
+* Originating template for a VM
+
+This information is displayed in the UI but is unavailable in the API.
+
 =head1 VERSION
 
-  Version: v1.7 (2010/09/01)
+  Version: v1.8 (2010/09/13)
 
 =head1 AUTHOR
 

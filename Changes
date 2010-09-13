@@ -1,5 +1,30 @@
 Revision history for VMware::API::LabManager
 
+1.8  2010/09/13
+  
+  Improved:
+    GetMachineByName() - Clenaed up perl syntax.
+    GetSingleConfigurationByName() - Corrected error in fault handling.
+    LiveLink() - Clenaed up perl syntax.
+
+  POD cleanup:
+    Moved API method names from a head 2 level to smaller to reduce outline.
+    Moved POD past __END__ token as per Perl best practices.
+    Added section for returned values.
+    Added section for example scripts.
+
+  Added example scripts:
+    conditions.pl
+    delete-all.pl
+    hwupgrade.pl
+    list-machines.pl
+    list-networks.pl
+    list-organization.pl
+    list-templates.pl
+    list-users.pl
+    list-workspaces.pl
+    move.pl
+  
 1.7  2010/09/01
 
   Added "WISH LIST" to the POD.
