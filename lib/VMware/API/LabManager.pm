@@ -4,7 +4,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '1.8';
+our $VERSION = '1.9';
 
 ### External methods
 
@@ -38,7 +38,7 @@ sub new {
     $self->config('die_on_fault',$old_die_on_fault);
   }
 
-  $self->_regenerate();  
+  $self->_regenerate();
 
   $self->_debug("Loaded VMware::API::LabManager v" . our $VERSION . "\n") if $self->{debug};
   return $self;
@@ -64,11 +64,11 @@ sub config {
 
   my %out;
   map { $out{$_} = $self->{$_} } @config_vals;
-  
+
   return wantarray ? %out : \%out;
 }
 
-sub getLastSOAPError {  
+sub getLastSOAPError {
   my $self = shift @_;
   my $error_summary;
   if ( $self->{LASTERROR} and $self->{LASTERROR}->{data} ) {
@@ -100,7 +100,7 @@ sub _fault {
     $soapobj = $data;
     $data = $soapobj->fault;
   }
-  
+
   if ( ref $data and defined $data->{faultstring} ) {
     $text = $data->{faultstring};
   } elsif ( ref $data and ref $data->{detail} and defined $data->{detail}->{message}->{format} ) {
@@ -121,7 +121,7 @@ sub _fault {
     die "\n\nERROR: $text\n";
   } else {
     $self->{LASTERROR}->{data} = $data;
-    $self->{LASTERROR}->{text} = $text;    
+    $self->{LASTERROR}->{text} = $text;
     $self->{LASTERROR}->{xml}  = $xml;
     warn "\n\nERROR: $text\n";
   }
@@ -129,7 +129,7 @@ sub _fault {
 
 sub _regenerate {
   my $self = shift @_;
-  
+
   $self->{soap} = SOAP::Lite
     -> on_action(sub { return "http://vmware.com/labmanager/" . $_[1]; } )
     -> default_ns('http://vmware.com/labmanager')
@@ -157,9 +157,9 @@ sub ConfigurationCapture {
   my $configID   = shift @_;
   my $newLibName = shift @_;
 
-  $self->{ConfigurationCapture} = 
-    $self->{soap}->ConfigurationCapture( 
-      $self->{auth_header}, 
+  $self->{ConfigurationCapture} =
+    $self->{soap}->ConfigurationCapture(
+      $self->{auth_header},
       SOAP::Data->name('configurationId' => $configID   )->type('s:int'),
       SOAP::Data->name('newLibraryName'  => $newLibName )->type('s:string')
     );
@@ -175,11 +175,11 @@ sub ConfigurationCapture {
 sub ConfigurationCheckout {
   my $self       = shift @_;
   my $configID   = shift @_;
-  my $configName = shift @_; 
+  my $configName = shift @_;
 
-  $self->{ConfigurationCheckout} = 
-    $self->{soap}->ConfigurationCheckout( 
-		$self->{auth_header}, 
+  $self->{ConfigurationCheckout} =
+    $self->{soap}->ConfigurationCheckout(
+		$self->{auth_header},
 		SOAP::Data->name('configurationId' => $configID   )->type('s:int'),   # Config to check out
         SOAP::Data->name('workspaceName'   => $configName )->type('s:string') # New name it shall be
 	);
@@ -198,7 +198,7 @@ sub ConfigurationClone {
   my $newWSName = shift @_;
 
 	$self->{ConfigurationClone} =
-		$self->{soap}->ConfigurationClone($self->{auth_header}, 
+		$self->{soap}->ConfigurationClone($self->{auth_header},
 		SOAP::Data->name('configurationId' => $configID )->type('s:int'),
         SOAP::Data->name('newWorkspaceName' => $newWSName )->type('s:string') );
 
@@ -214,8 +214,8 @@ sub ConfigurationDelete {
   my $self = shift @_;
   my $configID = shift @_;
 
-  $self->{ConfigurationDelete} = 
-    $self->{soap}->ConfigurationDelete( $self->{auth_header}, 
+  $self->{ConfigurationDelete} =
+    $self->{soap}->ConfigurationDelete( $self->{auth_header},
     SOAP::Data->name('configurationId' => $configID)->type('s:int')
   );
 
@@ -232,10 +232,10 @@ sub ConfigurationDeploy {
   my $configID  = shift @_;
   my $fencemode = shift @_; # 1 = not fenced; 2 = block traffic in and out; 3 = allow out ; 4 allow in and out
 
-	$self->{ConfigurationDeploy} = 
-		$self->{soap}->ConfigurationDeploy( $self->{auth_header}, 
+	$self->{ConfigurationDeploy} =
+		$self->{soap}->ConfigurationDeploy( $self->{auth_header},
 		SOAP::Data->name('configurationId' => $configID )->type('s:int'),
-		SOAP::Data->name('isCached' => "false")->type('s:boolean'), 
+		SOAP::Data->name('isCached' => "false")->type('s:boolean'),
 		SOAP::Data->name('fenceMode' => $fencemode)->type('s:int') );
 		
   if ( $self->{ConfigurationDeploy}->fault ) {
@@ -250,9 +250,9 @@ sub ConfigurationPerformAction {
   my $self     = shift @_;
   my $configID = shift @_;
   my $action   = shift @_; # 1-Pwr On, 2-Pwr off, 3-Suspend, 4-Resume, 5-Reset, 6-Snapshot
-  
-  $self->{ConfigurationPerformAction} = 
-    $self->{soap}->ConfigurationPerformAction( $self->{auth_header}, 
+
+  $self->{ConfigurationPerformAction} =
+    $self->{soap}->ConfigurationPerformAction( $self->{auth_header},
 	SOAP::Data->name('configurationId' => $configID )->type('s:int'),
 	SOAP::Data->name('action' => $action )->type('s:int') );
 
@@ -269,8 +269,8 @@ sub ConfigurationSetPublicPrivate {
   my $conf = shift @_;
   my $bool = shift @_;
 
-  $self->{ConfigurationSetPublicPrivate} = 
-    $self->{soap}->ConfigurationSetPublicPrivate( $self->{auth_header}, 
+  $self->{ConfigurationSetPublicPrivate} =
+    $self->{soap}->ConfigurationSetPublicPrivate( $self->{auth_header},
     SOAP::Data->name('configurationId' => $conf )->type('s:int'),
     SOAP::Data->name('isPublic'        => $bool )->type('s:boolean')
   );
@@ -287,8 +287,8 @@ sub ConfigurationUndeploy {
   my $self = shift @_;
   my $configID = shift @_;
 
-	$self->{ConfigurationUndeploy} = 
-		$self->{soap}->ConfigurationUndeploy( $self->{auth_header}, 
+	$self->{ConfigurationUndeploy} =
+		$self->{soap}->ConfigurationUndeploy( $self->{auth_header},
 		SOAP::Data->name('configurationId' => $configID )->type('s:int'));
 
   if ( $self->{ConfigurationUndeploy}->fault ) {
@@ -303,9 +303,9 @@ sub GetConfiguration {
   my $self = shift @_;
   my $conf = shift @_;
 		
-  $self->{GetConfiguration} = 
+  $self->{GetConfiguration} =
     $self->{soap}->GetConfiguration(
-      $self->{auth_header}, 
+      $self->{auth_header},
       SOAP::Data->name('id' => $conf )->type('s:int')
     );
 
@@ -321,9 +321,9 @@ sub GetConfigurationByName {
   my $self = shift @_;
   my $name = shift @_;
 		
-  $self->{GetConfigurationByName} = 
+  $self->{GetConfigurationByName} =
     $self->{soap}->GetConfigurationByName(
-      $self->{auth_header}, 
+      $self->{auth_header},
       SOAP::Data->name( name => $name )->type('s:string')
     );
 
@@ -337,7 +337,7 @@ sub GetConfigurationByName {
   my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Configuration} ] if ref $ret and ref $ret->{Configuration} eq 'HASH';
   $array =   $ret->{Configuration}   if ref $ret and ref $ret->{Configuration} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
@@ -345,9 +345,9 @@ sub GetMachine {
   my $self = shift @_;
   my $id   = shift @_;
 
-  $self->{GetMachine} = 
+  $self->{GetMachine} =
     $self->{soap}->GetMachine(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('machineId' => $id)->type('s:int') # mislabeled "machineID" by PUB API docs
 	);
 
@@ -364,8 +364,8 @@ sub GetMachineByName {
   my $config = shift @_;
   my $name   = shift @_;
 		
-  $self->{GetMachineByName} = 
-    $self->{soap}->GetMachineByName( $self->{auth_header}, 
+  $self->{GetMachineByName} =
+    $self->{soap}->GetMachineByName( $self->{auth_header},
     SOAP::Data->name('configurationId' => $config)->type('s:int'),
     SOAP::Data->name('name' => $name)->type('s:string'));
 
@@ -381,8 +381,8 @@ sub GetSingleConfigurationByName {
   my $self    = shift @_;
   my $config  = shift @_;
 		
-  $self->{GetSingleConfigurationByName} = 
-    $self->{soap}->GetSingleConfigurationByName( $self->{auth_header}, 
+  $self->{GetSingleConfigurationByName} =
+    $self->{soap}->GetSingleConfigurationByName( $self->{auth_header},
     SOAP::Data->name('name' => $config)->type('s:string'));
 
   if ( $self->{GetSingleConfigurationByName}->fault ) {
@@ -395,7 +395,7 @@ sub GetSingleConfigurationByName {
 
 sub ListConfigurations {
   my $self = shift @_;
-  my $type = shift @_; #1 =WorkSpace, 2=Library 
+  my $type = shift @_; #1 =WorkSpace, 2=Library
 
   $self->_debug("LISTING CONFIGURATIONS") if $self->{debug};
 
@@ -416,23 +416,23 @@ sub ListConfigurations {
   my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Configuration} ] if ref $ret and ref $ret->{Configuration} eq 'HASH';
   $array =   $ret->{Configuration}   if ref $ret and ref $ret->{Configuration} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
 sub ListMachines {
   my $self   = shift @_;
   my $config = shift @_;
-  
-  $self->{ListMachines} = 
-    $self->{soap}->ListMachines( $self->{auth_header}, 
+
+  $self->{ListMachines} =
+    $self->{soap}->ListMachines( $self->{auth_header},
     SOAP::Data->name('configurationId' => $config)->type('s:int'));
- 
+
   if ( $self->{ListMachines}->fault ) {
     $self->_fault( $self->{ListMachines} );
     return $self->{ListMachines}->fault;
   }
-   
+
   my $ret = $self->{ListMachines}->result;
 
   my $array = [];
@@ -452,8 +452,8 @@ sub GetConsoleAccessInfo
 	push(my(@attribs), @_);
 	my @myattribs;
 
-	$self->{GetConsoleAccessInfo} = 
-		$self->{soap}->GetConsoleAccessInfo( $self->{auth_header}, 
+	$self->{GetConsoleAccessInfo} =
+		$self->{soap}->GetConsoleAccessInfo( $self->{auth_header},
 		SOAP::Data->name('machineId' => $machineId)->type('s:int'));
 
   if ( $self->{GetConsoleAccessInfo}->fault ) {
@@ -468,8 +468,8 @@ sub LiveLink {
   my $self = shift @_;
   my $configName = shift @_;
 
-  $self->{LiveLink} = 
-    $self->{soap}->LiveLink( $self->{auth_header}, 
+  $self->{LiveLink} =
+    $self->{soap}->LiveLink( $self->{auth_header},
     SOAP::Data->name('configName' => $configName)->type('s:string'));
 
   if ( $self->{LiveLink}->fault ) {
@@ -485,8 +485,8 @@ sub MachinePerformAction {
   my $configID = shift @_;
   my $action   = shift @_;  # Actions: 1-Pwr On, 2-Pwr off, 3-Suspend, 4-Resume, 5-Reset, 6-Snapshot , 7-Revert, 8-Shutdown
 
-  $self->{MachinePerformAction} = 
-    $self->{soap}->MachinePerformAction( $self->{auth_header}, 
+  $self->{MachinePerformAction} =
+    $self->{soap}->MachinePerformAction( $self->{auth_header},
 	SOAP::Data->name('machineId' => $configID )->type('s:int'),
 	SOAP::Data->name('action' => $action )->type('s:int') );
 
@@ -502,10 +502,10 @@ sub MachinePerformAction {
 
 sub priv_ConfigurationAddMachineEx {
   my $self = shift @_;
-  
+
   my $ipaddress  = '10.10.220.10';
   my $macAddress = '00:50:DE:AD:BE:EF';
-  
+
   $_[4] = 0 unless $_[4];
   $_[5] = 0 unless $_[5];
 
@@ -524,9 +524,9 @@ sub priv_ConfigurationAddMachineEx {
 	           SOAP::Data->name('isConnected' => 1           )->type('s:int'),
 	         ));
 
-  $self->{ConfigurationAddMachineEx} = 
+  $self->{ConfigurationAddMachineEx} =
     $self->{soap_priv}->ConfigurationAddMachineEx(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('id'         =>$_[0])->type('s:int'),
 	  SOAP::Data->name('template_id'=>$_[1])->type('s:int'),
 	  SOAP::Data->name('name'       =>$_[2])->type('s:string'),
@@ -558,9 +558,9 @@ sub priv_ConfigurationArchiveEx {
 
   $isFullClone = 'false' unless $isFullClone =~ /^true$/i;
 
-  $self->{ConfigurationArchiveEx} = 
-    $self->{soap_priv}->ConfigurationArchiveEx( 
-      $self->{auth_header}, 
+  $self->{ConfigurationArchiveEx} =
+    $self->{soap_priv}->ConfigurationArchiveEx(
+      $self->{auth_header},
       SOAP::Data->name('configurationID'            => $configurationId            )->type('s:int'),
       SOAP::Data->name('archiveName'                => $archiveName                )->type('s:string'),
       SOAP::Data->name('archiveDescription'         => $archiveDescription         )->type('s:string'),
@@ -588,9 +588,9 @@ sub priv_ConfigurationCaptureEx {
 
   $isGoldMaster = 'false' unless $isGoldMaster =~ /^true$/i;
 
-  $self->{ConfigurationCaptureEx} = 
-    $self->{soap_priv}->ConfigurationCaptureEx( 
-      $self->{auth_header}, 
+  $self->{ConfigurationCaptureEx} =
+    $self->{soap_priv}->ConfigurationCaptureEx(
+      $self->{auth_header},
       SOAP::Data->name('configurationId'            => $configurationId            )->type('s:int'),
       SOAP::Data->name('newLibraryName'             => $newLibraryName             )->type('s:string'),
       SOAP::Data->name('libraryDescription'         => $libraryDescription         )->type('s:string'),
@@ -612,9 +612,9 @@ sub priv_ConfigurationChangeOwner {
   my $conf = shift @_;
   my $own  = shift @_;
 
-  $self->{ConfigurationChangeOwner} = 
-    $self->{soap_priv}->ConfigurationChangeOwner( 
-      $self->{auth_header}, 
+  $self->{ConfigurationChangeOwner} =
+    $self->{soap_priv}->ConfigurationChangeOwner(
+      $self->{auth_header},
       SOAP::Data->name('configurationId' => $conf )->type('s:int'),
       SOAP::Data->name('newOwnerId'      => $own  )->type('s:int'),
     );
@@ -632,10 +632,10 @@ sub priv_ConfigurationCopy {
   my $sg_id       = shift @_;
   my $name        = shift @_;
   my $description = shift @_;
-  
+
   my $machines = shift @_;
   my $storage = shift @_;
-  
+
   my @machine_data;
 
   for my $machine (@$machines) {
@@ -645,10 +645,10 @@ sub priv_ConfigurationCopy {
     }
     push @machine_data, SOAP::Data->name('machine' => \SOAP::Data->value(@elements));
   }
-  
-  $self->{ConfigurationCopy} = 
-    $self->{soap_priv}->ConfigurationCopy( 
-      $self->{auth_header}, 
+
+  $self->{ConfigurationCopy} =
+    $self->{soap_priv}->ConfigurationCopy(
+      $self->{auth_header},
       SOAP::Data->name('sg_id'       => $sg_id       )->type('s:int'),
       SOAP::Data->name('name'        => $name        )->type('s:string'),
       SOAP::Data->name('description' => $description )->type('s:string'),
@@ -674,17 +674,17 @@ sub priv_ConfigurationCloneToWorkspace {
   my $isNewConfiguration = shift @_;
   my $newConfigName      = shift @_;
   my $description        = shift @_;
-  
+
   my $machines = shift @_;
   my $storage  = shift @_;
 
   my $existingConfigId           = shift @_;
   my $isFullClone                = shift @_;
   my $storageLeaseInMilliseconds = shift @_;
-  
+
   $isNewConfiguration = 'false' unless $isNewConfiguration =~ /^true$/i;
   $isFullClone = 'false' unless $isFullClone =~ /^true$/i;
-  
+
   my @machine_data;
 
   for my $machine (@$machines) {
@@ -694,10 +694,10 @@ sub priv_ConfigurationCloneToWorkspace {
     }
     push @machine_data, SOAP::Data->name('machine' => \SOAP::Data->value(@elements));
   }
-  
-  $self->{ConfigurationCloneToWorkspace} = 
-    $self->{soap_priv}->ConfigurationCloneToWorkspace( 
-      $self->{auth_header}, 
+
+  $self->{ConfigurationCloneToWorkspace} =
+    $self->{soap_priv}->ConfigurationCloneToWorkspace(
+      $self->{auth_header},
       SOAP::Data->name('destWorkspaceId'    => $destWorkspaceId    )->type('s:int'),
       SOAP::Data->name('isNewConfiguration' => $isNewConfiguration )->type('s:bool'),
       SOAP::Data->name('newConfigName'      => $newConfigName      )->type('s:string'),
@@ -709,7 +709,7 @@ sub priv_ConfigurationCloneToWorkspace {
         ))
 	  )),
       SOAP::Data->name('isFullClone' => $newConfigName )->type('s:bool'),
-      SOAP::Data->name('storageLeaseInMilliseconds' => $description )->type('s:long'),	  
+      SOAP::Data->name('storageLeaseInMilliseconds' => $description )->type('s:long'),	
     );
 
   if ( $self->{ConfigurationCloneToWorkspace}->fault ) {
@@ -724,10 +724,10 @@ sub priv_ConfigurationCreateEx {
   my $self = shift @_;
   my $name = shift @_;
   my $desc = shift @_;
-  
-  $self->{ConfigurationCreateEx} = 
+
+  $self->{ConfigurationCreateEx} =
     $self->{soap_priv}->ConfigurationCreateEx(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('name'=>$name)->type('s:string'),
 	  SOAP::Data->name('desc'=>$desc)->type('s:string')
 	);
@@ -756,7 +756,7 @@ sub priv_ConfigurationDeployEx2 {
                            SOAP::Data->name('externalNetId' => $networkId)->type('s:int')
                         )
                      );
-  
+
    my @net_array;
    my @bridge_array;
    push(@net_array,$net_elem);
@@ -787,10 +787,10 @@ sub priv_ConfigurationExport {
   my $unc  = shift @_;
   my $user = shift @_;
   my $pass = shift @_;
-  
-  $self->{ConfigurationExport} = 
+
+  $self->{ConfigurationExport} =
     $self->{soap_priv}->ConfigurationExport(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('configId' =>$conf)->type('s:int'),
 	  SOAP::Data->name('uncPath'  =>$unc )->type('s:string'),
 	  SOAP::Data->name('username' =>$user)->type('s:string'),
@@ -812,9 +812,9 @@ sub priv_ConfigurationGetNetworks {
 
   $phys = 'false' unless $phys =~ /^true$/i;
 
-  $self->{ConfigurationGetNetworks} = 
+  $self->{ConfigurationGetNetworks} =
     $self->{soap_priv}->ConfigurationGetNetworks(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('configID'=>$conf)->type('s:int'),
 	  SOAP::Data->name('physical'=>$phys)->type('s:boolean'),
     );
@@ -831,7 +831,7 @@ sub priv_ConfigurationGetNetworks {
   #my $array = $ret ? [ $ret ] : [ ];
   #$array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
   #$array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
-  
+
   #return wantarray ? @$array : $array;
 }
 
@@ -843,8 +843,8 @@ sub priv_ConfigurationImport {
   my $name = shift @_;
   my $desc = shift @_;
   my $stor = shift @_;
-  
-  $self->{ConfigurationImport} = 
+
+  $self->{ConfigurationImport} =
     $self->{soap_priv}->ConfigurationImport(
       $self->{auth_header},
 	  SOAP::Data->name('UNCPath'     =>$unc )->type('s:string'),
@@ -874,7 +874,7 @@ sub priv_ConfigurationMove {
   my $exist = shift @_;
   my $vmids = shift @_;
   my $del   = shift @_;
-  
+
   $isnew = 'false' unless $isnew =~ /^true$/i;
   $del   = 'false' unless $del   =~ /^true$/i;
 
@@ -888,8 +888,8 @@ sub priv_ConfigurationMove {
   push @optional, SOAP::Data->name('newConfigDescription'       =>$desc )->type('s:string')  if $desc;
   push @optional, SOAP::Data->name('storageLeaseInMilliseconds' =>$lease)->type('s:long')    if $lease;
   push @optional, SOAP::Data->name('deleteOriginalConfig'       =>$del  )->type('s:boolean') if $del;
-  
-  $self->{ConfigurationMove} = 
+
+  $self->{ConfigurationMove} =
     $self->{soap_priv}->ConfigurationMove(
       $self->{auth_header},
 	  SOAP::Data->name('configIdToMove'         =>$conf )->type('s:int'),
@@ -920,17 +920,17 @@ sub priv_GetAllWorkspaces {
   my $array = [ $ret ];
   $array = [ $ret->{Workspace} ] if ref $ret and ref $ret->{Workspace} eq 'HASH';
   $array =   $ret->{Workspace}   if ref $ret and ref $ret->{Workspace} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
 sub priv_GetNetworkInfo {
   my $self = shift @_;
   my $vmid = shift @_;
-  
-  $self->{GetNetworkInfo} = 
+
+  $self->{GetNetworkInfo} =
     $self->{soap_priv}->GetNetworkInfo(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('vmID'=>$vmid)->type('s:int')
 	);
 
@@ -938,7 +938,7 @@ sub priv_GetNetworkInfo {
     $self->_fault( $self->{GetNetworkInfo} );
     return $self->{GetNetworkInfo}->fault;
   }
-   
+
   my $ret = $self->{GetNetworkInfo}->result;
 
   my $array = [];
@@ -952,10 +952,10 @@ sub priv_GetObjectConditions {
   my $self = shift @_;
   my $objectType = shift @_;
   my $objectID   = shift @_;
-  
-  $self->{GetObjectConditions} = 
+
+  $self->{GetObjectConditions} =
     $self->{soap_priv}->GetObjectConditions(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('objectType'=>$objectType)->type('s:int'),
 	  SOAP::Data->name('objectID'=>$objectID)->type('s:int'),
 	);
@@ -971,10 +971,10 @@ sub priv_GetObjectConditions {
 sub priv_GetOrganization {
   my $self = shift @_;
   my $oid  = shift @_;
-  
-  $self->{GetOrganization} = 
+
+  $self->{GetOrganization} =
     $self->{soap_priv}->GetOrganization(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('organizationId'=>$oid)->type('s:int')
 	);
 
@@ -987,7 +987,7 @@ sub priv_GetOrganization {
 }
 
 sub priv_GetOrganizations {
-  my $self = shift @_;  
+  my $self = shift @_;
   $self->{GetOrganizations} = $self->{soap_priv}->GetOrganizations( $self->{auth_header} );
 
   if ( $self->{GetOrganizations}->fault ) {
@@ -1000,17 +1000,17 @@ sub priv_GetOrganizations {
   my $array = [ $ret ];
   $array = [ $ret->{Organization} ] if ref $ret and ref $ret->{Organization} eq 'HASH';
   $array =   $ret->{Organization}   if ref $ret and ref $ret->{Organization} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
 sub priv_GetOrganizationByName {
   my $self = shift @_;
   my $name = shift @_;
-  
-  $self->{GetOrganizationByName} = 
+
+  $self->{GetOrganizationByName} =
     $self->{soap_priv}->GetOrganizationByName(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('organizationName'=>$name)->type('s:string')
 	);
 
@@ -1025,10 +1025,10 @@ sub priv_GetOrganizationByName {
 sub priv_GetOrganizationWorkspaces {
   my $self = shift @_;
   my $oid  = shift @_;
-  
-  $self->{GetOrganizationWorkspaces} = 
+
+  $self->{GetOrganizationWorkspaces} =
     $self->{soap_priv}->GetOrganizationWorkspaces(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('organizationId'=>$oid)->type('s:int')
 	);
 
@@ -1042,17 +1042,17 @@ sub priv_GetOrganizationWorkspaces {
   my $array = [ $ret ];
   $array = [ $ret->{Workspace} ] if ref $ret and ref $ret->{Workspace} eq 'HASH';
   $array =   $ret->{Workspace}   if ref $ret and ref $ret->{Workspace} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
 sub priv_GetTemplate {
   my $self = shift @_;
   my $id  = shift @_;
-  
-  $self->{GetTemplate} = 
+
+  $self->{GetTemplate} =
     $self->{soap_priv}->GetTemplate(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('id'=>$id)->type('s:int')
 	);
 
@@ -1067,10 +1067,10 @@ sub priv_GetTemplate {
 sub priv_GetUser {
   my $self = shift @_;
   my $name = shift @_;
-  
-  $self->{GetUser} = 
+
+  $self->{GetUser} =
     $self->{soap_priv}->GetUser(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('userName'=>$name)->type('s:string')
 	);
 
@@ -1085,10 +1085,10 @@ sub priv_GetUser {
 sub priv_GetWorkspaceByName {
   my $self = shift @_;
   my $name = shift @_;
-  
-  $self->{GetWorkspaceByName} = 
+
+  $self->{GetWorkspaceByName} =
     $self->{soap_priv}->GetWorkspaceByName(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('workspaceName'=>$name)->type('s:string')
 	);
 
@@ -1110,14 +1110,14 @@ sub priv_LibraryCloneToWorkspace {
 
   my $machines        = shift @_;
   my $storage         = shift @_;
-  
+
   my $existingconfid  = shift @_;
   my $isfullclone     = shift @_;
   my $storagelease    = shift @_;
 
   $isnew = 'false' unless $isnew =~ /^true$/i;
   $isfullclone = 'false' unless $isfullclone =~ /^true$/i;
-  
+
   my @machine_data;
 
   for my $machine (@$machines) {
@@ -1127,10 +1127,10 @@ sub priv_LibraryCloneToWorkspace {
     }
     push @machine_data, SOAP::Data->name('machine' => \SOAP::Data->value(@elements));
   }
-  
-  $self->{LibraryCloneToWorkspace} = 
-    $self->{soap_priv}->LibraryCloneToWorkspace( 
-      $self->{auth_header}, 
+
+  $self->{LibraryCloneToWorkspace} =
+    $self->{soap_priv}->LibraryCloneToWorkspace(
+      $self->{auth_header},
       SOAP::Data->name('libraryId'                  => $libraryid       )->type('s:int'),
       SOAP::Data->name('destWorkspaceId'            => $destworkspaceid )->type('s:int'),
       SOAP::Data->name('isNewConfiguration'         => $isnew           )->type('s:boolean'),
@@ -1169,7 +1169,7 @@ sub priv_ListNetworks {
   my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
   $array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
@@ -1187,7 +1187,7 @@ sub priv_ListTemplates {
   my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{Template} ] if ref $ret and ref $ret->{Template} eq 'HASH';
   $array =   $ret->{Template}   if ref $ret and ref $ret->{Template} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
@@ -1207,7 +1207,7 @@ sub priv_ListTransportNetworksInCurrentOrg {
   #my $array = $ret ? [ $ret ] : [ ];
   #$array = [ $ret->{Network} ] if ref $ret and ref $ret->{Network} eq 'HASH';
   #$array =   $ret->{Network}   if ref $ret and ref $ret->{Network} eq 'ARRAY';
-  
+
   #return wantarray ? @$array : $array;
 }
 
@@ -1225,14 +1225,14 @@ sub priv_ListUsers {
   my $array = $ret ? [ $ret ] : [ ];
   $array = [ $ret->{User} ] if ref $ret and ref $ret->{User} eq 'HASH';
   $array =   $ret->{User}   if ref $ret and ref $ret->{User} eq 'ARRAY';
-  
+
   return wantarray ? @$array : $array;
 }
 
 sub priv_MachineUpgradeVirtualHardware {
   my $self = shift @_;
   my $id   = shift @_;
-  $self->{MachineUpgradeVirtualHardware} = 
+  $self->{MachineUpgradeVirtualHardware} =
     $self->{soap_priv}->MachineUpgradeVirtualHardware(
       $self->{auth_header},
       SOAP::Data->name('machineId'=>$id)->type('s:int'),
@@ -1253,9 +1253,9 @@ sub priv_NetworkInterfaceCreate {
   my $iptype = shift @_;
   my $ipaddr = shift @_;
 
-  $self->{NetworkInterfaceCreate} = 
+  $self->{NetworkInterfaceCreate} =
     $self->{soap_priv}->NetworkInterfaceCreate(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('vmID'             =>$vmid   )->type('s:int'),
 	  SOAP::Data->name('networkID'        =>$netid  )->type('s:int'),
 	  SOAP::Data->name('IPAssignmentType' =>$iptype )->type('s:string'),
@@ -1275,9 +1275,9 @@ sub priv_NetworkInterfaceDelete {
   my $vmid  = shift @_;
   my $nicid = shift @_;
 
-  $self->{NetworkInterfaceDelete} = 
+  $self->{NetworkInterfaceDelete} =
     $self->{soap_priv}->NetworkInterfaceDelete(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('vmID'  => $vmid  )->type('s:int'),
 	  SOAP::Data->name('nicID' => $nicid )->type('s:int'),
 	);
@@ -1296,9 +1296,9 @@ sub priv_NetworkInterfaceModify { ### INCOMPLETE
   my $netid  = shift @_;
   my $info   = shift @_;
 
-  $self->{NetworkInterfaceModify} = 
+  $self->{NetworkInterfaceModify} =
     $self->{soap_priv}->NetworkInterfaceModify(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  #SOAP::Data->name('vmID'             =>$vmid   )->type('s:int'),
 	  #SOAP::Data->name('networkID'        =>$netid  )->type('s:int'),
 	  #SOAP::Data->name('IPAssignmentType' =>$iptype )->type('s:string'),
@@ -1316,7 +1316,7 @@ sub priv_NetworkInterfaceModify { ### INCOMPLETE
 sub priv_StorageServerVMFSFindByName {
   my $self      = shift @_;
   my $storeName = shift @_;
-  
+
   $self->{StorageServerVMFSFindByName} =
     $self->{soap_priv}->StorageServerVMFSFindByName(
 					       $self->{auth_header},
@@ -1338,9 +1338,9 @@ sub priv_TemplateChangeOwner {
   my $temp = shift @_;
   my $own  = shift @_;
 
-  $self->{TemplateChangeOwner} = 
-    $self->{soap_priv}->TemplateChangeOwner( 
-      $self->{auth_header}, 
+  $self->{TemplateChangeOwner} =
+    $self->{soap_priv}->TemplateChangeOwner(
+      $self->{auth_header},
       SOAP::Data->name('templateId' => $temp )->type('s:int'),
       SOAP::Data->name('newOwnerId' => $own  )->type('s:int'),
     );
@@ -1359,10 +1359,10 @@ sub priv_TemplateExport {
   my $unc  = shift @_;
   my $user = shift @_;
   my $pass = shift @_;
-  
-  $self->{TemplateExport} = 
+
+  $self->{TemplateExport} =
     $self->{soap_priv}->TemplateExport(
-      $self->{auth_header}, 
+      $self->{auth_header},
 	  SOAP::Data->name('template_id' =>$temp)->type('s:int'),
 	  SOAP::Data->name('UNCPath'     =>$unc )->type('s:string'),
 	  SOAP::Data->name('username'    =>$user)->type('s:string'),
@@ -1391,7 +1391,7 @@ sub priv_TemplateImport {
   # Virtualization Technology: 6 (VMWare ESX Server 3.0)
   # This comes from the Private API documentation
   my $vsid = 6;
-  
+
   my $paramlist = \SOAP::Data->value(
 
 	 #SOAP::Data->name('VMParameter' => \SOAP::Data->value(
@@ -1411,7 +1411,7 @@ sub priv_TemplateImport {
 
   );
 
-  $self->{TemplateImport} = 
+  $self->{TemplateImport} =
     $self->{soap_priv}->TemplateImport(
       $self->{auth_header},
 	  SOAP::Data->name('UNCPath'     =>$unc )->type('s:string'),
@@ -1488,17 +1488,17 @@ sub priv_TemplatePerformAction {
   my $self        = shift @_;
   my $template_id = shift @_;
   my $action      = shift @_;
-  
+
    $self->{TemplatePerformAction} =
      $self->{soap_priv}->TemplatePerformAction( $self->{auth_header},
                 SOAP::Data->name('template_id'     => $template_id )->type('s:int'),
                 SOAP::Data->name('action'          => $action      )->type('s:int') );
- 
+
    if ($self->{TemplatePerformAction}->fault) {
      $self->_fault( $self->{TemplatePerformAction} );
      return $self->{TemplatePerformAction}->fault;
    }
- 
+
    return $self->{TemplatePerformAction}->result;
 }
 
@@ -1509,9 +1509,9 @@ sub priv_WorkspaceCreate {
   my $description = shift @_;
   my $storedquota = shift @_;
   my $deployquota = shift @_;
-  
-  $self->{WorkspaceCreate} = 
-    $self->{soap_priv}->WorkspaceCreate( $self->{auth_header}, 
+
+  $self->{WorkspaceCreate} =
+    $self->{soap_priv}->WorkspaceCreate( $self->{auth_header},
 	SOAP::Data->name('name'            => $name        )->type('s:string'),
 	SOAP::Data->name('isMain'          => $ismain      )->type('s:bool'),
 	SOAP::Data->name('description'     => $description )->type('s:string'),
@@ -1540,7 +1540,7 @@ Code to checkout, deploy, undeploy and delete a configuration:
 
     my $labman = new VMware::LabManager ( $username, $password, $server, $orgname, $workspace );
 
- 	# Get the id of the config you are going to check out 
+ 	# Get the id of the config you are going to check out
  	my $config = $labman->GetSingleConfigurationByName("myConfigName");
 
  	# Checkout the config
@@ -1560,23 +1560,23 @@ Code to checkout, deploy, undeploy and delete a configuration:
 
 =head1 DESCRIPTION
 
-This module provides a Perl interface to VMWare's Labmanager SOAP interface. It 
-has a one-to-one mapping for most of the commands exposed in the external API as 
-well as a few commands exposed in the internal API. The most useful Internal API 
-command is ConfigurationDeployEx2 which allows you to deploy to distributed 
-virtual switches.  
+This module provides a Perl interface to VMWare's Labmanager SOAP interface. It
+has a one-to-one mapping for most of the commands exposed in the external API as
+well as a few commands exposed in the internal API. The most useful Internal API
+command is ConfigurationDeployEx2 which allows you to deploy to distributed
+virtual switches.
 
-Using this module you can checkout, deploy, undeploy and delete configurations. 
+Using this module you can checkout, deploy, undeploy and delete configurations.
 You can also get lists of configurations and guest information as well.
 
-Lab Manager is a product created by VMWare that provides development and test 
-teams with a virtual environment to deploy systems and networks of systems in a 
-short period of a time. 
+Lab Manager is a product created by VMWare that provides development and test
+teams with a virtual environment to deploy systems and networks of systems in a
+short period of a time.
 
 =head1 RETURNED VALUES
 
-Many of the methods return hash references or arrays of hash references that 
-contain information about a specific "object" or conecpt on the Lab Manager 
+Many of the methods return hash references or arrays of hash references that
+contain information about a specific "object" or conecpt on the Lab Manager
 server. This is a rough analog to the Managed Object Reference structure of
 the VIPERL SDK without the generic interface for retireval.
 
@@ -1679,7 +1679,7 @@ will be present in that location.
             'Description' => '',
             'IsEnabled' => 'true'
           };
-          
+
 =head2 Network
 
           {
@@ -1790,7 +1790,7 @@ This methods provide a direct mapping to the public API calls for Labmanager.
 
 =head2 ConfigurationCapture
 
-This method captures a Workspace configuration and saves into the library.  
+This method captures a Workspace configuration and saves into the library.
 
 U<Arguments>
 
@@ -1810,7 +1810,7 @@ ID on success. Fault object on fault.
 
 This method checks out a configuration from the configuration library and moves it to the Workspace under a different name. It returns the ID of the checked out configuration in the WorkSpace.
 
-WARNING: If you get the following SOAP Error: 
+WARNING: If you get the following SOAP Error:
 
 =over 4
 
@@ -1895,7 +1895,7 @@ U<Arguments>
 
 =head2 ConfigurationSetPublicPrivate
 
-Use this call to set the state of a configuration to public” or private.” If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
+Use this call to set the state of a configuration to public or private. If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
 
 U<Arguments>
 
@@ -1979,7 +1979,7 @@ This call takes a configuration identifier and a machine name and returns the ma
 U<Arguments>
 
 =over
- 
+
 =item * Configuration ID - Config where Guest VM lives
 
 =item * Name of guest
@@ -1999,7 +1999,7 @@ U<Arguments>
 
 =over
 
-=item * Configuration name 
+=item * Configuration name
 
 =back
 
@@ -2020,7 +2020,7 @@ U<Arguments>
 
 =over
 
-=item * configurationType (Configuration Type must be either 1 for Workspace or 2 for Library) 
+=item * configurationType (Configuration Type must be either 1 for Workspace or 2 for Library)
 
 =back
 
@@ -2096,7 +2096,7 @@ U<Arguments>
 
 =head1 INTERNAL API METHODS
 
-This methods provide a direct mapping to internal API calls for Labmanager. 
+This methods provide a direct mapping to internal API calls for Labmanager.
 These calls are not publically supported by VMware and may change between
 releases of the Labmanager product.
 
@@ -2126,7 +2126,7 @@ U<Arguments>
 
 =head2 priv_ConfigurationArchiveEx
 
-This method captures a Workspace configuration and saves into the library.  
+This method captures a Workspace configuration and saves into the library.
 
 U<Arguments>
 
@@ -2152,7 +2152,7 @@ ID on success. Fault object on fault.
 
 =head2 priv_ConfigurationCaptureEx
 
-This method captures a Workspace configuration and saves into the library.  
+This method captures a Workspace configuration and saves into the library.
 
 U<Arguments>
 
@@ -2248,7 +2248,7 @@ U<Arguments>
 
 =over
 
-=item * Name - The name of the configuration 
+=item * Name - The name of the configuration
 
 =item * Description - The description of the configuration
 
@@ -2268,7 +2268,7 @@ U<Arguments>
 
 =over
 
-=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it. 
+=item * Configuration ID - Use the GetConfigurationByName method to retrieve this if you do not know it.
 
 =item * Network ID
 
@@ -2511,7 +2511,7 @@ U<Arguments>
 
 =item * isFullClone
 
-=item * storageLeaseInMilliseconds 
+=item * storageLeaseInMilliseconds
 
 =back
 
@@ -2529,7 +2529,7 @@ This method returns an array of type TransportNetwork. The method returns one Ne
 
 =head2 priv_ListUsers
 
-This method returns an array of type Users. The method returns one User object for 
+This method returns an array of type Users. The method returns one User object for
 each User imported into LabMan.
 
 =head2 priv_MachineUpgradeVirtualHardware
@@ -2717,27 +2717,27 @@ SOAP action. This means that you are re-autneticated on each action you perform.
 As stated in the VMware Lab Manager SOAP API Guide v2.4, pg 13:
 
   Client applications must provide valid credentials - a Lab Manager user account
-  and password - with each Lab Manager Web service method call. The user account 
-  must have Administrator privileges on the Lab Manager Server. The Lab Manager 
+  and password - with each Lab Manager Web service method call. The user account
+  must have Administrator privileges on the Lab Manager Server. The Lab Manager
   Server authenticates these credentials.
 
 If your Lab Manager is configured for remote authentication and is slow to log-in,
-this means you will see a performance drop in the speed of this API. Every method 
+this means you will see a performance drop in the speed of this API. Every method
 call on this module (a method call in this module representing an API SOAP method call)
 will take the same amount of time it takes you to initially log into the Lab Manager
 interface plus the actual processing time of the action.
 
 This is complicated by a known issue that some complex API calls will internally
 perform several actions in Lab Manager, and you might pay that authentication call
-4 or 5 times as the action processes. This known issue, is slated to be resolved 
+4 or 5 times as the action processes. This known issue, is slated to be resolved
 on the next major release of Lab Manager.
 
-The web interface to Lab Manager allows you to cache credentials after initial 
+The web interface to Lab Manager allows you to cache credentials after initial
 login. The web API does not. (See above quote.) You will pay for authentication
 time on all API calls.
 
 One potential workaround is to use a local user account for API actions. Local
-accounts can be created and co-exist while remote (LDAP/AD) authentication is 
+accounts can be created and co-exist while remote (LDAP/AD) authentication is
 used. Local user accounts authenticate much quicker than other forms.
 
 =head2 priv_ConfigurationAddMachineEx()
@@ -2746,7 +2746,7 @@ This call does not currently build the correct Ethernet driver information.
 
 =head2 ConfigurationCheckout() API errors.
 
-If you get the following SOAP Error: 
+If you get the following SOAP Error:
 
 =over 4
 
@@ -2766,32 +2766,32 @@ The API documents for these calls have a typo. The parameter accepted by the SOA
 
 =head1 CONFUSING ERROR CODES
 
-By design, the textual error codes presented by this module are directly passed 
+By design, the textual error codes presented by this module are directly passed
 from Lab Manager. They are not generated by this library.
 
-That being said, sometimes Lab Manager does not provide the clearest error 
+That being said, sometimes Lab Manager does not provide the clearest error
 description. Hopefully the following hints can help you save time when debugging:
 
 =head3 "The configuration you were looking at is no longer accessible."
 
 This means that the config ID you used references a non-existant configuration.
-This is commonly caused by a mistake in what ID you are using on a given call. 
+This is commonly caused by a mistake in what ID you are using on a given call.
 (A machine id accidentally used in place of a config id, etc.)
 
 =head3 "Server was unable to read the request. There is an error in XML document."
 
 This bit of engrish most commonly crops up when the wrong data type is used as a
-parameter in a call. A good example is using a configuration name when a 
+parameter in a call. A good example is using a configuration name when a
 configuration ID is expected. (String vs Int causing the server to refuse the XML
 document.)
 
 =head3 "Object reference not set to an instance of an object."
 
-This lovely gem usually pops up when a required parameter is missing in a 
+This lovely gem usually pops up when a required parameter is missing in a
 given SOAP call. This probably reflects a typo or capitalization error in the
-underlying wrapper call. (AKA: A mistake that I made.) Let me know if you figure 
-out what is up. As is referenced in the BUGS AND LIMITATIONS section, the 
-documentation for the API is incorrect in some places. The WSDL on the server 
+underlying wrapper call. (AKA: A mistake that I made.) Let me know if you figure
+out what is up. As is referenced in the BUGS AND LIMITATIONS section, the
+documentation for the API is incorrect in some places. The WSDL on the server
 is considered authorative and I'd check that first for resolution.
 
 =head1 WISH LIST
@@ -2802,17 +2802,33 @@ dearly love a few changes, that might help things:
 * A way to submit multiple actions, or to cache credentials for speed. See
 "Authentication and latentcy" under the BUGS section.
 
-* The template object should reference "owner" and not "ownerFullName." All 
-ownership in the rest of the API is associated with the username, which is 
-unique. To figure out who owns a template you have to crosswalk the full name 
+* A way to look up a VM's vsphere name. This information is displayed in the
+UI but is unavailable in the API.
+
+* Originating template for a VM. This information is displayed in the UI but
+is unavailable in the API.
+
+* The template object should reference "owner" and not "ownerFullName." All
+ownership in the rest of the API is associated with the username, which is
+unique. To figure out who owns a template you have to crosswalk the full name
 back to username and the full name is not guarenteed to be unique.
 
-* The template object should list the organization it is based in. Short of 
-doing a list of all templates in each organization and diffing them, there is 
-no quick way to determine if a template belongs only to this group, or is 
+* The template object should list the organization it is based in. Short of
+doing a list of all templates in each organization and diffing them, there is
+no quick way to determine if a template belongs only to this group, or is
 global and shared. (Oh, and if you do diff them for that information, a template
 in global shared to only one organization looks exactly the same as a template
 that exists only in one organization. So it's not a foolproof workaround.)
+
+* LabManagerInternal.UserPerformAction()
+
+It would be really nice if there was an list of what the action's this method
+accepts. An anonymous friend in VMware did an opengrok search for me and found
+these possible values in use for this call:
+
+  1 == Enable, 2 == Disable, 3 == Delete.
+
+Official confirmation or documentation would be very helpful.
 
 * Consistent naming and capitalization.
 
@@ -2825,17 +2841,9 @@ that exists only in one organization. So it's not a foolproof workaround.)
 
 Boy would this make my life easier to debug issues quickly.
 
-* A way to look up a VM's vsphere name.
-
-This information is displayed in the UI but is unavailable in the API.
-
-* Originating template for a VM
-
-This information is displayed in the UI but is unavailable in the API.
-
 =head1 VERSION
 
-  Version: v1.8 (2010/09/13)
+  Version: v1.9 (2010/09/17)
 
 =head1 AUTHOR
 
@@ -2850,19 +2858,22 @@ This information is displayed in the UI but is unavailable in the API.
 
   SOAP::Lite
 
-=head1 LICENSE AND COPYRIGHT 
+=head1 LICENSE AND COPYRIGHT
 
   Released under Perl Artistic License
 
 =head1 SEE ALSO
 
- VMWare Labmanger 
+ VMWare Labmanger
   http://www.vmware.com/products/labmanager/
 
- VMWare Labmanager SOAP API Guide 
+ VMWare Labmanager SOAP API Guide (External API)
   http://www.vmware.com/pdf/lm40_soap_api_guide.pdf
 
- VMWare Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure 
+ VMware Labmanager 4.0 Internal API documentation
+  http://communities.vmware.com/docs/DOC-10608
+
+ VMWare Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure
   http://www.vmware.com/files/pdf/lm_whitepaper.pdf
 
 =cut

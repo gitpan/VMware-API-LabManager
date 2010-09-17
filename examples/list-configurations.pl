@@ -1,10 +1,10 @@
 #!/usr/bin/perl
 
-=head1 list-machines.pl
+=head1 list-configurations.pl
 
 This example script demonstrates the Lab Manager API call 
-ListMachines(). This call returns an array of machine objects that are 
-found within the configuration provided.
+ListConfigurations(). This call returns an array of configurations 
+objects that are found.
 
 Data::Dumper is used to print the returned array of objects.
 
@@ -14,8 +14,6 @@ Data::Dumper is used to print the returned array of objects.
  --username  - Username to use to perform this action with
  --password  - Password for the above username
 
- --config - Name of the configuration to upgrade virtual hardware for
-
 =cut
 
 use Data::Dumper;
@@ -23,7 +21,7 @@ use Getopt::Long;
 use VMware::API::LabManager;
 use strict;
 
-my $version = ( split ' ', '$Revision: 1.3 $' )[1];
+my $version = ( split ' ', '$Revision: 1.1 $' )[1];
 
 my ( $username, $password, $server);
 my $orgname   = 'Global';
@@ -33,7 +31,7 @@ my $ret = GetOptions ( 'username=s' => \$username, 'password=s' => \$password,
                        'orgname=s' => \$orgname, 'workspace=s' => \$workspace,
                        'server=s' => \$server );
 
-die "Check the POD. This script needs command line parameters." unless
+die "Check the POD. This script needs command line parameters." unless 
  $username and $password and $orgname and $workspace and $server;
 
 my $labman = new VMware::API::LabManager (
@@ -41,8 +39,5 @@ my $labman = new VMware::API::LabManager (
 );
 
 my $configs = $labman->ListConfigurations(1); # 1 - configs, not library entries
-my $config = $configs->[0];
 
-my $machines = $labman->ListMachines($config->{id});
-
-print Dumper($machines);
+print Dumper($configs);

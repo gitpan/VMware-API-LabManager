@@ -5,22 +5,21 @@ use Getopt::Long;
 use VMware::API::LabManager;
 use strict;
 
-my $version = ( split ' ', '$Revision: 1.2 $' )[1];
+my $version = ( split ' ', '$Revision: 1.3 $' )[1];
 
-### Configuration
-
-my $username  = 'ppollard';
-my $password  = 'z2A3p464';
+my ( $username, $password, $server);
 my $orgname   = 'Global';
 my $workspace = 'Main';
-my $server    = '10.198.138.73'; # Source
+
+my $ret = GetOptions ( 'username=s' => \$username, 'password=s' => \$password,
+                       'orgname=s' => \$orgname, 'workspace=s' => \$workspace,
+                       'server=s' => \$server );
+
+die "Check the POD. This script needs command line parameters." unless
+ $username and $password and $orgname and $workspace and $server;
 
 my $labman = new VMware::API::LabManager (
-  $username,        # Username
-  $password,        # Password
-  $server,          # Server
-  $orgname,         # Org Name
-  $workspace        # Workspace Name
+  $username, $password, $server, $orgname, $workspace
 );
 
 my $wss = $labman->priv_GetAllWorkspaces();

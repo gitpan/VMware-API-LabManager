@@ -1,6 +1,24 @@
 Revision history for VMware::API::LabManager
 
+1.9  2010/09/17
+
+  Added example script:
+    list-configurations.pl
+
+  Corrected:
+    Syntax error on all example scripts.
+
+  Improved:
+    Command line parameter checks added to all example scripts.
+    Accidental UTF characters (curly quotes) removed from POD.
+    UserPerformAction() added to WISH LIST section of POD.
+    Trailing spaces removed from all lines.
+    Small POD cleanups.
+
 1.8  2010/09/13
+  
+  Added test:
+    02-header.t - SOAP connection header tests
   
   Improved:
     GetMachineByName() - Clenaed up perl syntax.
