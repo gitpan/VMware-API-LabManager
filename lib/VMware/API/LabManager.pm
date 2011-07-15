@@ -1,10 +1,11 @@
 package VMware::API::LabManager;
 
+use Data::Dumper;
 use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '1.9';
+our $VERSION = '1.11';
 
 ### External methods
 
@@ -1388,7 +1389,7 @@ sub priv_TemplateImport {
 
   my $list = shift @_;
 
-  # Virtualization Technology: 6 (VMWare ESX Server 3.0)
+  # Virtualization Technology: 6 (VMware ESX Server 3.0)
   # This comes from the Private API documentation
   my $vsid = 6;
 
@@ -1560,23 +1561,21 @@ Code to checkout, deploy, undeploy and delete a configuration:
 
 =head1 DESCRIPTION
 
-This module provides a Perl interface to VMWare's Labmanager SOAP interface. It
+This module provides a Perl interface to VMware's Labmanager SOAP interface. It
 has a one-to-one mapping for most of the commands exposed in the external API as
-well as a few commands exposed in the internal API. The most useful Internal API
-command is ConfigurationDeployEx2 which allows you to deploy to distributed
-virtual switches.
+well as a many commands exposed in the internal API.
 
 Using this module you can checkout, deploy, undeploy and delete configurations.
 You can also get lists of configurations and guest information as well.
 
-Lab Manager is a product created by VMWare that provides development and test
+Lab Manager is a product created by VMware that provides development and test
 teams with a virtual environment to deploy systems and networks of systems in a
 short period of a time.
 
 =head1 RETURNED VALUES
 
 Many of the methods return hash references or arrays of hash references that
-contain information about a specific "object" or conecpt on the Lab Manager
+contain information about a specific "object" or concept on the Lab Manager
 server. This is a rough analog to the Managed Object Reference structure of
 the VIPERL SDK without the generic interface for retireval.
 
@@ -2843,7 +2842,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-  Version: v1.9 (2010/09/17)
+  Version: v1.11 (2011/07/14)
 
 =head1 AUTHOR
 
@@ -2852,6 +2851,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 CONTRIBUTIONS
 
+  John Barker, <john@johnrbarker.com>
   Cameron Berkenpas <cberkenpas@paypal.com>
 
 =head1 DEPENDENCIES
@@ -2864,16 +2864,16 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 SEE ALSO
 
- VMWare Labmanger
+ VMware Labmanger
   http://www.vmware.com/products/labmanager/
 
- VMWare Labmanager SOAP API Guide (External API)
+ VMware Labmanager SOAP API Guide (External API)
   http://www.vmware.com/pdf/lm40_soap_api_guide.pdf
 
  VMware Labmanager 4.0 Internal API documentation
   http://communities.vmware.com/docs/DOC-10608
 
- VMWare Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure
+ VMware Lab Manager: Automated Reconfiguration of Transiently Used Infrastructure
   http://www.vmware.com/files/pdf/lm_whitepaper.pdf
 
 =cut
