@@ -1,6 +1,6 @@
 Revision history for VMware::API::LabManager
 
-1.11  2011/07/14
+1.11  2011/07/15
 
   Corrected:
     Call of Data::Dumper without instancing the module.
