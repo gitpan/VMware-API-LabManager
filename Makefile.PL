@@ -1,10 +1,10 @@
 use ExtUtils::MakeMaker;
 
 WriteMakefile(
-    'NAME'         => 'VMware::API::LabManager',
-    'VERSION_FROM' => 'lib/VMware/API/LabManager.pm',
-    'PREREQ_PM'    => { 'SOAP::Lite' => '0.71', 'Crypt::SSLeay' => '0', 'Data::Dumper' => '0' },
+    'NAME'         => 'VMware::vCloud',
+    'VERSION_FROM' => 'lib/VMware/vCloud.pm',
+    'PREREQ_PM'    => { 'LWP' => '5', 'XML::Simple' => '2', Data::Dumper => '0' },
     ($] >= 5.005 ?
-      (ABSTRACT_FROM => 'lib/VMware/API/LabManager.pm',
+      (ABSTRACT_FROM => 'lib/VMware/vCloud.pm',
        AUTHOR     => 'Phillip Pollard <bennie@cpan.org>') : ()),
 );
