@@ -5,7 +5,7 @@ use LWP;
 use XML::Simple;
 use strict;
 
-our $VERSION = 'v1.600.07';
+our $VERSION = 'v1.600.08';
 
 ### External methods
 
@@ -331,7 +331,7 @@ dearly love a few changes, that might help things:
 
 =head1 VERSION
 
-  Version: vv1.600.07 (2011/07/29)
+  Version: v1.600.08 (2011/08/02)
 
 =head1 AUTHOR
 
