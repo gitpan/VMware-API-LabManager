@@ -1,14 +1,14 @@
-abstract:     VMware vCloud API
+abstract:     VMware's Lab Manager public and private API
 installdirs:  site
 license:      perl
-name:         VMware-vCloud
-version:      v2.02
-version_from: lib/VMware/vCloud.pm
+name:         VMware-API-LabManager
+version:      v2.01
+version_from: lib/VMware/API/LabManager.pm
 
 requires:
   Data::Dumper: 0
-  LWP: 5
-  XML::Simple: 2
+  SOAP::Lite: 0.71
+  Crypt::SSLeay: 0
 
 distribution_type: module
 generated_by: ExtUtils::MakeMaker version 6.17
