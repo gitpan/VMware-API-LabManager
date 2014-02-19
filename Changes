@@ -1,13 +1,19 @@
 Revision history for VMware::API::LabManager
 
-v2.01  2011/12/08
+2.03  2014/02/18
+
+  Corrected:
+    %ENV workaround did not need BEGIN block or "our" context.
+    Added explicit declaration of Net::SSL to help with self-signed certs
+
+2.01  2010/12/9
 
   Corrected:
     Call of Data::Dumper without instancing the module.
 
   Improved:
     Added -I to example scripts for local execution within the distribution
-    Added an ENV workaround for self-signed certs due to changes in LWP
+    Added a %ENV workaround for self-signed certs due to changes in LWP
 
 1.10  2010/09/17
 

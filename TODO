@@ -9,3 +9,6 @@ deficiencies and inefficiencies in the current module:
 - Better handling of method handles
 - Better handling of errors
 - Handle all "singleton" return conditions to force arrays when appropriate
+
+Sadly, since Lab Manager is scheduled to be End-Of-Life in 2014, these may 
+never get done.

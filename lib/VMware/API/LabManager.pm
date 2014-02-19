@@ -1,16 +1,15 @@
 package VMware::API::LabManager;
 
-BEGIN {
-  our %ENV;
-  $ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0; # Workaround for self-signed certs
-}
+# Workaround for self-signed certs
+$ENV{PERL_NET_HTTPS_SSL_SOCKET_CLASS} = "Net::SSL";
+$ENV{PERL_LWP_SSL_VERIFY_HOSTNAME} = 0;
 
 use Data::Dumper;
 use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = 'v2.01';
+our $VERSION = '2.03';
 
 ### External methods
 
@@ -2847,7 +2846,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-  Version: vv2.01 (2011/12/08)
+  Version: v2.03 (2014/02/18)
 
 =head1 AUTHOR
 
