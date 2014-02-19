@@ -23,8 +23,6 @@ use Getopt::Long;
 use VMware::API::LabManager;
 use strict;
 
-my $version = ( split ' ', '$Revision: 2.1 $' )[1];
-
 my ( $username, $password, $server, $configname );
 my $orgname   = 'Global';
 my $workspace = 'Main';

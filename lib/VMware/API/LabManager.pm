@@ -9,7 +9,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '2.03';
+our $VERSION = '2.04';
 
 ### External methods
 
@@ -2846,7 +2846,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-  Version: v2.03 (2014/02/18)
+  Version: v2.04 (2014/02/19)
 
 =head1 AUTHOR
 
