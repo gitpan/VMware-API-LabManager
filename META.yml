@@ -27,7 +27,7 @@ no_index:
         - t
         - inc
 provides:
-    Rcs::Parser:
+    VMware::API::LabManager:
         file: lib/VMware/API/LabManager.pm
         version: 2.05
 generated_by:       ExtUtils::MakeMaker version 6.56
