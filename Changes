@@ -1,5 +1,13 @@
 Revision history for VMware::API::LabManager
 
+2.05  2014/02/24
+
+  Added:
+    The Artistic 2.0 license as LICENSE
+
+  Improved:
+    Updating meta: perl base, provdies, resources and correct license
+
 2.04  2014/02/19
 
   Improved:

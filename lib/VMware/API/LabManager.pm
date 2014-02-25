@@ -9,7 +9,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '2.04';
+our $VERSION = '2.05';
 
 ### External methods
 
@@ -2844,11 +2844,32 @@ Official confirmation or documentation would be very helpful.
 
 Boy would this make my life easier to debug issues quickly.
 
+=head1 DEPENDENCIES
+
+  Net::SSL
+  SOAP::Lite
+
+=head1 BUGS AND SOURCE
+
+	Bug tracking for this module: https://rt.cpan.org/Dist/Display.html?Name=VMware-API-LabManager
+
+	Source hosting: http://www.github.com/bennie/perl-VMware-API-LabManager
+
 =head1 VERSION
 
-  Version: v2.04 (2014/02/19)
+	VMware::API::LabManager v2.05 (2014/02/24)
 
-=head1 AUTHOR
+=head1 COPYRIGHT
+
+    (c) 2004-2014, Phillip Pollard <bennie@cpan.org>
+
+=head1 LICENSE
+
+This source code is released under the "Perl Artistic License 2.0," the text of
+which is included in the LICENSE file of this distribution. It may also be
+reviewed here: http://opensource.org/licenses/artistic-license-2.0
+
+=head1 AUTHORSHIP
 
   Phillip Pollard, <bennie@cpan.org>
   David F. Kinder, Jr, <dkinder@davidkinder.net>
@@ -2857,14 +2878,6 @@ Boy would this make my life easier to debug issues quickly.
 
   John Barker, <john@johnrbarker.com>
   Cameron Berkenpas <cberkenpas@paypal.com>
-
-=head1 DEPENDENCIES
-
-  SOAP::Lite
-
-=head1 LICENSE AND COPYRIGHT
-
-  Released under Perl Artistic License
 
 =head1 SEE ALSO
 
