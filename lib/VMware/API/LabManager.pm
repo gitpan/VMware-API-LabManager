@@ -9,7 +9,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '2.05';
+our $VERSION = '2.06';
 
 ### External methods
 
@@ -449,8 +449,7 @@ sub ListMachines {
 
 ###### CHECK THIS
 # Not Supported, but works (I believe)
-sub GetConsoleAccessInfo
-{
+sub GetConsoleAccessInfo {
 	# Attribs: ServerAddress, ServerPort,VmxLocation,Ticket
 	my($self) = shift @_;
 	my($machineId) = shift @_;
@@ -2857,7 +2856,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-	VMware::API::LabManager v2.05 (2014/02/24)
+	VMware::API::LabManager v2.06 (2014/02/27)
 
 =head1 COPYRIGHT
 

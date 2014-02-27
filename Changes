@@ -1,12 +1,17 @@
 Revision history for VMware::API::LabManager
 
-2.05  2014/02/24
+2.06  2014/02/27
+
+  Improved:
+    Now auto-generating META.json and META.yml
+
+2.04  2014/02/25
 
   Added:
     The Artistic 2.0 license as LICENSE
 
   Improved:
-    Updating meta: perl base, provdies, resources and correct license
+    Updating meta: perl base, provides, resources and correct license
 
 2.04  2014/02/19
 
