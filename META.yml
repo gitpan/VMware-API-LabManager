@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name:               VMware-API-LabManager
-version:            2.06
+version:            2.07
 abstract:           VMware's Lab Manager public and private API
 author:
     - Phil Pollard <bennie@cpan.org>

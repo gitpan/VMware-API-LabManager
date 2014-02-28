@@ -1,6 +1,11 @@
 Revision history for VMware::API::LabManager
 
-2.06  2014/02/27
+2.07  2014/02/27
+
+  Corrected:
+    Makefile.PL improperly called for the prerequisite Perl version.
+
+2.05  2014/02/27
 
   Improved:
     Now auto-generating META.json and META.yml

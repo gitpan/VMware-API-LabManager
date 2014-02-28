@@ -5,11 +5,10 @@ WriteMakefile(
   AUTHOR   => 'Phil Pollard <bennie@cpan.org>',
   LICENSE  => 'artistic_2',
   NAME     => 'VMware::API::LabManager',
-  VERSION  => '2.06',
+  VERSION  => '2.07',
 
   PREREQ_PM => {
           'SOAP::Lite' => '0.71',
-          'perl' => '5.006',
           'Net::SSL' => 0,
           'Data::Dumper' => 0
         }
