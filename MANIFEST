@@ -2,10 +2,10 @@ Changes
 LICENSE
 Makefile.PL
 MANIFEST
-META.yml
 README
 TODO
 lib/VMware/API/LabManager.pm
+t/00-pod.t
 t/01-load.t
 t/02-header.t
 examples/conditions.pl
@@ -19,5 +19,5 @@ examples/list-templates.pl
 examples/list-users.pl
 examples/list-workspaces.pl
 examples/move.pl
-META.json
-Makefile.PL
+META.yml                                 Module YAML meta-data (added by MakeMaker)
+META.json                                Module JSON meta-data (added by MakeMaker)

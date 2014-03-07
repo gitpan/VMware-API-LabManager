@@ -1,5 +1,13 @@
 Revision history for VMware::API::LabManager
 
+2.08  2014/03/06
+
+  Corrected:
+    POD errors in formatting codes
+
+  Added:
+    POD test
+
 2.07  2014/02/27
 
   Corrected:

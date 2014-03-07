@@ -9,7 +9,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-our $VERSION = '2.07';
+$VMware::API::LabManager::VERSION = '2.08';
 
 ### External methods
 
@@ -1750,7 +1750,7 @@ or  module as a "wrapper" for the Labmanager API.
 
 This method creates the Labmanager object.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1794,7 +1794,7 @@ This methods provide a direct mapping to the public API calls for Labmanager.
 
 This method captures a Workspace configuration and saves into the library.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1804,7 +1804,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -1824,7 +1824,7 @@ This is because there are multiple workspaces named "Main", in different organiz
 
 A workaround is to make sure you use this call on a uniquely name workspace or to use a private call (such as priv_LibraryCloneToWorkspace) instead.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1838,7 +1838,7 @@ U<Arguments>
 
 This method clones a Workspace configuration, saves it in a storage server, and makes it visible in the Workspace under the new name. Arguements:
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1852,7 +1852,7 @@ U<Arguments>
 
 This method deletes a configuration from the Workspace. You cannot delete a deployed configuration. Doesn't return anything. Arguments:
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1864,7 +1864,7 @@ U<Arguments>
 
 This method allows you to deploy an undeployed configuration which resides in the Workspace.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1885,7 +1885,7 @@ This method performs one of the following configuration actions as indicated by 
   5 : Reset. Reboots a configuration.
   6 : Snapshot. Saves a configuration state at a specific point in time.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1899,7 +1899,7 @@ U<Arguments>
 
 Use this call to set the state of a configuration to public or private. If the configuration state is public, others are able to access this configuration. If the configuration is private, only its owner can view it.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1913,7 +1913,7 @@ U<Arguments>
 
 Undeploys a configuration in the Workspace. Nothing is returned.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1925,7 +1925,7 @@ U<Arguments>
 
 This method retruns a reference to a Configuration matching the configuration ID passed.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1933,7 +1933,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 A hashref to a configuration. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
 name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
@@ -1943,7 +1943,7 @@ dateCreated
 
 This method retruns a reference to a Configuration matching the configuration ID passed.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1951,7 +1951,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 An array of configurations matching this name. Example keys: mustBeFenced, autoDeleteDateTime, bucketName,
 name, autoDeleteInMilliSeconds, description, isDeployed, fenceMode, id, type, isPublic,
@@ -1961,7 +1961,7 @@ dateCreated
 
 This call takes the numeric identifier of a machine and returns its corresponding Machine object.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1969,7 +1969,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
 name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
@@ -1978,7 +1978,7 @@ name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
 
 This call takes a configuration identifier and a machine name and returns the matching Machine object.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -1988,7 +1988,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 A hashref to a machine. Example elements: configID, macAddress, status, OwnerFullName,
 name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
@@ -1997,7 +1997,7 @@ name, description, isDeployed, internalIP, memory, DatastoreNameResidesOn, id
 
 This call takes a configuration name, searches for it in both the configuration library and workspace and returns its corresponding Configuration object.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2005,7 +2005,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 A hashref to a configuration. Example elements: mustBeFenced, autoDeleteDateTime,
 bucketName (aka workspace), name, autoDeleteInMilliSeconds, description, isDeployed,
@@ -2018,7 +2018,7 @@ workspace or library.
 
 It depends on configuration type requested.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2030,7 +2030,7 @@ U<Arguments>
 
 This method returns an array of type Machine. The method returns one Machine object for each virtual machine in a configuration.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2042,7 +2042,7 @@ U<Arguments>
 
 This method allows you to create a LiveLink URL to a library configuration. Responds with a livelink URL
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2086,7 +2086,7 @@ This method performs one of the following machine actions as indicated by the ac
 
 =back
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2106,7 +2106,7 @@ releases of the Labmanager product.
 
 =head2 priv_ConfigurationAddMachineEx
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2130,7 +2130,7 @@ U<Arguments>
 
 This method captures a Workspace configuration and saves into the library.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2148,7 +2148,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -2156,7 +2156,7 @@ ID on success. Fault object on fault.
 
 This method captures a Workspace configuration and saves into the library.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2174,7 +2174,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 ID on success. Fault object on fault.
 
@@ -2184,7 +2184,7 @@ NB: API docs are wrong on this one. It accepts ConfigurationId and not Configura
 
 Changes the owner of the given config.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2198,7 +2198,7 @@ U<Arguments>
 
 This method copys a configuration to a new datastore. (Full clone)
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2218,7 +2218,7 @@ U<Arguments>
 
 This method copys a configuration to a new datastore. (Full clone)
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2246,7 +2246,7 @@ U<Arguments>
 
 Creates and empty configuration.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2256,7 +2256,7 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 ID of the configuration on success.
 
@@ -2266,7 +2266,7 @@ A fault object on fault.
 
 This method allows you to deploy an undeployed configuration which resides in the Workspace to a Distributed Virtual Switch. Arguments:
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2280,7 +2280,7 @@ U<Arguments>
 
 =head2 priv_ConfigurationExport
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2298,7 +2298,7 @@ U<Arguments>
 
 Returns an array of physical or virtual network IDs for the specified configuration.
 
-U<Arguments>
+B<Arguments>
 
 =over 4
 
@@ -2312,7 +2312,7 @@ This method returns an array of type Network.
 
 =head2 priv_ConfigurationImport
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2332,7 +2332,7 @@ U<Arguments>
 
 =head2 priv_ConfigurationMove
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2358,7 +2358,7 @@ U<Arguments>
 
 =head2 priv_GetAllWorkspaces
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2366,7 +2366,7 @@ U<Arguments>
 
 =back
 
-U<Arguments>
+B<Arguments>
 
 Returns an array of workspace objects.
 
@@ -2374,7 +2374,7 @@ Returns an array of workspace objects.
 
 Returns the Network information for a specific VM.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2382,13 +2382,13 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 An array of Network references.
 
 =head2 priv_GetObjectConditions
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2405,7 +2405,7 @@ U<Arguments>
 
 =head2 priv_GetOrganization
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2413,13 +2413,13 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 Organization object
 
 =head2 priv_GetOrganizations
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2427,13 +2427,13 @@ U<Arguments>
 
 =back
 
-U<Arguments>
+B<Arguments>
 
 Returns an array of organization refs.
 
 =head2 priv_GetOrganizationByName
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2443,7 +2443,7 @@ U<Arguments>
 
 =head2 priv_GetOrganizationWorkspaces
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2451,13 +2451,13 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 An array of Workspace objects that are in the given organizations.
 
 =head2 priv_GetTemplate
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2465,13 +2465,13 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 Template object.
 
 =head2 priv_GetUser
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2479,13 +2479,13 @@ U<Arguments>
 
 =back
 
-U<Returns>
+B<Returns>
 
 User object.
 
 =head2 priv_GetWorkspaceByName
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2536,7 +2536,7 @@ each User imported into LabMan.
 
 =head2 priv_MachineUpgradeVirtualHardware
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2546,7 +2546,7 @@ U<Arguments>
 
 =head2 priv_NetworkInterfaceCreate
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2572,7 +2572,7 @@ U<Arguments>
 
 =head2 priv_NetworkInterfaceModify
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2594,7 +2594,7 @@ U<Arguments>
 
 Changes the owner of the given template.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2608,7 +2608,7 @@ U<Arguments>
 
 Exports a template out to a UNC path for later import.
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2624,7 +2624,7 @@ U<Arguments>
 
 =head2 priv_TemplateImport
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2646,7 +2646,7 @@ U<Arguments>
 
 =head2 priv_TemplateImportFromSMB
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2670,7 +2670,7 @@ U<Arguments>
 
 =head2 priv_TemplatePerformAction
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2694,7 +2694,7 @@ The action is a number representing any of the following:
 
 =head2 priv_WorkspaceCreate
 
-U<Arguments>
+B<Arguments>
 
 =over
 
@@ -2856,7 +2856,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-	VMware::API::LabManager v2.07 (2014/02/27)
+	VMware::API::LabManager v2.08 (2014/03/06)
 
 =head1 COPYRIGHT
 

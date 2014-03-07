@@ -3,9 +3,8 @@
    "author" : [
       "Phil Pollard <bennie@cpan.org>"
    ],
-   "description" : "VMware's Lab Manager public and private API used for automating the Lab Manager product.",
    "dynamic_config" : 1,
-   "generated_by" : "CPAN::Meta version 2.132830",
+   "generated_by" : "ExtUtils::MakeMaker version 6.9, CPAN::Meta::Converter version 2.133380",
    "license" : [
       "artistic_2"
    ],
@@ -14,23 +13,37 @@
       "version" : "2"
    },
    "name" : "VMware-API-LabManager",
+   "no_index" : {
+      "directory" : [
+         "t",
+         "inc",
+         "t"
+      ]
+   },
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Data::Dumper" : 0,
-            "Net::SSL" : 0,
-            "SOAP::Lite" : "0.71",
-            "perl" : "5.006"
+            "ExtUtils::MakeMaker" : "0"
+         }
+      },
+      "configure" : {
+         "requires" : {
+            "ExtUtils::MakeMaker" : "0"
          }
       },
       "runtime" : {
-         "recommends" : {},
          "requires" : {
-            "Data::Dumper" : 0,
-            "Net::SSL" : 0,
+            "Data::Dumper" : "0",
+            "Net::SSL" : "0",
             "SOAP::Lite" : "0.71",
-            "perl" : "5.006"
+            "perl" : "5.006001"
          }
+      }
+   },
+   "provides" : {
+      "VMware::API::LabManager" : {
+         "file" : "lib/VMware/API/LabManager.pm",
+         "version" : "2.08"
       }
    },
    "release_status" : "stable",
@@ -38,14 +51,11 @@
       "bugtracker" : {
          "web" : "https://rt.cpan.org/Dist/Display.html?Name=VMware-API-LabManager"
       },
-      "license" : [
-         "http://dev.perl.org/licenses/"
-      ],
       "repository" : {
          "type" : "git",
          "url" : "git://github.com/bennie/perl-VMware-API-LabManager.git",
          "web" : "http://github.com/bennie/perl-VMware-API-LabManager"
       }
    },
-   "version" : "2.07"
+   "version" : "2.08"
 }
