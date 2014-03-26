@@ -9,7 +9,7 @@ use SOAP::Lite; # +trace => 'debug';
 use warnings;
 use strict;
 
-$VMware::API::LabManager::VERSION = '2.08';
+$VMware::API::LabManager::VERSION = '2.09';
 
 ### External methods
 
@@ -2856,7 +2856,7 @@ Boy would this make my life easier to debug issues quickly.
 
 =head1 VERSION
 
-	VMware::API::LabManager v2.08 (2014/03/06)
+	VMware::API::LabManager v2.09 (2014/03/26)
 
 =head1 COPYRIGHT
 

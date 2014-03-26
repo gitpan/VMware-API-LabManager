@@ -1,5 +1,10 @@
 Revision history for VMware::API::LabManager
 
+2.09  2014/03/26
+
+  Improved:
+    Added RT bug number to Changes for release 2.01, and closed the bug
+
 2.08  2014/03/06
 
   Corrected:
@@ -41,7 +46,7 @@ Revision history for VMware::API::LabManager
 2.01  2010/12/09
 
   Corrected:
-    Call of Data::Dumper without instancing the module.
+    Call of Data::Dumper without instancing the module. (RT #69478)
 
   Improved:
     Added -I to example scripts for local execution within the distribution

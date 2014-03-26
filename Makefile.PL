@@ -5,7 +5,7 @@ WriteMakefile(
   AUTHOR   => 'Phil Pollard <bennie@cpan.org>',
   LICENSE  => 'artistic_2',
   NAME     => 'VMware::API::LabManager',
-  VERSION  => '2.08',
+  VERSION  => '2.09',
 
   PREREQ_PM => {
           'SOAP::Lite' => '0.71',
@@ -18,12 +18,15 @@ WriteMakefile(
         : ( META_MERGE => {
                 'meta-spec' => { version => 2 },
                 no_index => {directory => [qw/t/]},
-                provides => {
-                     'VMware::API::LabManager' => {
-                          file    => 'lib/VMware/API/LabManager.pm',
-                          version => '2.08'
-                     }
-                },
+                provides => 
+
+	{
+          'VMware::API::LabManager' => {
+                                         'version' => '2.09',
+                                         'file' => 'lib/VMware/API/LabManager.pm'
+                                       }
+        },
+
                 release_status => 'stable',
                 resources => {
                     repository => {
