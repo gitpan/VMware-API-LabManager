@@ -1,5 +1,13 @@
 Revision history for VMware::API::LabManager
 
+2.10  2014/04/30
+
+  Corrected:
+    Using GNU TAR now. The previous release had PAX headers in the tar file.
+
+  Improved:
+    Build scripts now automatically configure minium perl version.
+
 2.09  2014/03/26
 
   Improved:

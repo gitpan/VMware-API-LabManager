@@ -5,7 +5,7 @@ WriteMakefile(
   AUTHOR   => 'Phil Pollard <bennie@cpan.org>',
   LICENSE  => 'artistic_2',
   NAME     => 'VMware::API::LabManager',
-  VERSION  => '2.09',
+  VERSION  => '2.10',
 
   PREREQ_PM => {
           'SOAP::Lite' => '0.71',
@@ -22,7 +22,7 @@ WriteMakefile(
 
 	{
           'VMware::API::LabManager' => {
-                                         'version' => '2.09',
+                                         'version' => '2.10',
                                          'file' => 'lib/VMware/API/LabManager.pm'
                                        }
         },
@@ -45,7 +45,7 @@ WriteMakefile(
 
   ( $ExtUtils::MakeMaker::VERSION < 6.48
         ? ()
-        : ( MIN_PERL_VERSION => '5.006001' )
+        : ( MIN_PERL_VERSION => '5.006' )
   )
 
 );

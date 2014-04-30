@@ -4,7 +4,7 @@
       "Phil Pollard <bennie@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.92, CPAN::Meta::Converter version 2.132830",
+   "generated_by" : "ExtUtils::MakeMaker version 6.96, CPAN::Meta::Converter version 2.120630",
    "license" : [
       "artistic_2"
    ],
@@ -36,14 +36,14 @@
             "Data::Dumper" : "0",
             "Net::SSL" : "0",
             "SOAP::Lite" : "0.71",
-            "perl" : "5.006001"
+            "perl" : "5.006"
          }
       }
    },
    "provides" : {
       "VMware::API::LabManager" : {
          "file" : "lib/VMware/API/LabManager.pm",
-         "version" : "2.09"
+         "version" : "2.10"
       }
    },
    "release_status" : "stable",
@@ -57,5 +57,5 @@
          "web" : "http://github.com/bennie/perl-VMware-API-LabManager"
       }
    },
-   "version" : "2.09"
+   "version" : "2.10"
 }
